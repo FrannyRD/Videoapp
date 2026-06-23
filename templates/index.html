@@ -66,7 +66,6 @@
     addScene("Cientos lo han intentado. Nadie lo ha logrado", "puzzle thinking");
 
     async function generateVideo() {
-      const sceneDivs = document.querySelectorAll(".scene");
       const scenes = [];
       document.querySelectorAll("#scenes .scene").forEach(div => {
         const text = div.querySelector(".scene-text").value.trim();
@@ -86,7 +85,7 @@
 
       btn.disabled = true;
       statusEl.className = "";
-      statusEl.innerText = "⏳ Generando video... esto puede tardar 1-3 minutos.";
+      statusEl.innerText = "⏳ Enviando...";
 
       try {
         const resp = await fetch("/api/generate", {
@@ -96,19 +95,54 @@
         });
         const data = await resp.json();
 
-        if (data.ok) {
-          statusEl.className = "success";
-          statusEl.innerHTML = `✅ ¡Video listo! <a id="downloadLink" href="${data.download_url}">Descargar video</a>`;
-        } else {
+        if (!data.ok) {
           statusEl.className = "error";
           statusEl.innerText = "❌ Error: " + data.error;
+          btn.disabled = false;
+          return;
         }
+
+        statusEl.innerText = "⏳ Generando video... esto puede tardar 1-3 minutos. No cierres esta pestaña.";
+        pollStatus(data.job_id, statusEl, btn);
+
       } catch (err) {
         statusEl.className = "error";
         statusEl.innerText = "❌ Error de conexión: " + err.message;
-      } finally {
         btn.disabled = false;
       }
+    }
+
+    async function pollStatus(jobId, statusEl, btn) {
+      const maxAttempts = 90; // ~7.5 minutos máximo (90 * 5s)
+      let attempts = 0;
+
+      const interval = setInterval(async () => {
+        attempts++;
+        try {
+          const resp = await fetch(`/api/status/${jobId}`);
+          const data = await resp.json();
+
+          if (data.status === "done") {
+            clearInterval(interval);
+            statusEl.className = "success";
+            statusEl.innerHTML = `✅ ¡Video listo! <a id="downloadLink" href="${data.download_url}">Descargar video</a>`;
+            btn.disabled = false;
+          } else if (data.status === "error") {
+            clearInterval(interval);
+            statusEl.className = "error";
+            statusEl.innerText = "❌ Error: " + data.error;
+            btn.disabled = false;
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            statusEl.className = "error";
+            statusEl.innerText = "⏱️ Está tardando demasiado. Revisa los logs en Render.";
+            btn.disabled = false;
+          }
+          // si sigue "processing", no hacemos nada y esperamos el próximo intento
+        } catch (err) {
+          // un fallo de red puntual al consultar no debe detener el polling
+        }
+      }, 5000);
     }
   </script>
 </body>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Videos - Enigma Diario</title>
+<style>
+  body { font-family: -apple-system, Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; background: #0d0d1a; color: #eee; }
+  h1 { font-size: 1.4rem; }
+  .scene { background: #1a1a2e; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  textarea, select, input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #111; color: #eee; }
+  label { font-size: 0.85rem; color: #aaa; }
+  button { background: #4f46e5; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+  button:disabled { background: #555; }
+  #removeBtns button { background: #b91c1c; padding: 4px 10px; font-size: 0.8rem; }
+  #status { margin-top: 16px; padding: 10px; border-radius: 8px; }
+  .error { background: #4a1414; color: #ffb4b4; }
+  .success { background: #14361f; color: #b6f0c5; }
+  #downloadLink { display: inline-block; margin-top: 10px; color: #93c5fd; }
+</style>
+</head>
+<body>
+  <h1>🎬 Generador de Reels — Enigma Diario</h1>
+  <p style="color:#999; font-size:0.9rem;">Agrega cada escena con su texto y una palabra clave en inglés para buscar el video de fondo (ej: "dark cave", "treasure map").</p>
+
+  <div id="scenes"></div>
+
+  <button onclick="addScene()">+ Agregar escena</button>
+
+  <div class="scene" style="margin-top:20px;">
+    <label>Voz</label>
+    <select id="voice">
+      <option value="mexico_hombre">Español México (Hombre)</option>
+      <option value="espana_hombre">Español España (Hombre)</option>
+      <option value="espana_mujer">Español España (Mujer)</option>
+    </select>
+  </div>
+
+  <button id="generateBtn" onclick="generateVideo()">🎥 Generar video</button>
+
+  <div id="status"></div>
+
+  <script>
+    let sceneCount = 0;
+
+    function addScene(text = "", keyword = "") {
+      sceneCount++;
+      const div = document.createElement("div");
+      div.className = "scene";
+      div.id = "scene-" + sceneCount;
+      div.innerHTML = `
+        <label>Escena ${sceneCount} — Texto / voz</label>
+        <textarea rows="2" class="scene-text">${text}</textarea>
+        <label>Palabra clave (inglés, para buscar el video)</label>
+        <input type="text" class="scene-keyword" value="${keyword}" placeholder="ej: dark cave">
+        <div id="removeBtns">
+          <button onclick="document.getElementById('scene-${sceneCount}').remove()">Quitar escena</button>
+        </div>
+      `;
+      document.getElementById("scenes").appendChild(div);
+    }
+
+    // Arrancamos con 3 escenas vacías de ejemplo
+    addScene("Este código lleva sin resolverse más de 100 años", "typewriter");
+    addScene("Promete un tesoro escondido de millones de dólares", "treasure map");
+    addScene("Cientos lo han intentado. Nadie lo ha logrado", "puzzle thinking");
+
+    async function generateVideo() {
+      const sceneDivs = document.querySelectorAll(".scene");
+      const scenes = [];
+      document.querySelectorAll("#scenes .scene").forEach(div => {
+        const text = div.querySelector(".scene-text").value.trim();
+        const keyword = div.querySelector(".scene-keyword").value.trim();
+        if (text && keyword) scenes.push({ text, keyword });
+      });
+
+      const voice = document.getElementById("voice").value;
+      const statusEl = document.getElementById("status");
+      const btn = document.getElementById("generateBtn");
+
+      if (scenes.length === 0) {
+        statusEl.className = "error";
+        statusEl.innerText = "Agrega al menos una escena con texto y palabra clave.";
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.className = "";
+      statusEl.innerText = "⏳ Generando video... esto puede tardar 1-3 minutos.";
+
+      try {
+        const resp = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenes, voice })
+        });
+        const data = await resp.json();
+
+        if (data.ok) {
+          statusEl.className = "success";
+          statusEl.innerHTML = `✅ ¡Video listo! <a id="downloadLink" href="${data.download_url}">Descargar video</a>`;
+        } else {
+          statusEl.className = "error";
+          statusEl.innerText = "❌ Error: " + data.error;
+        }
+      } catch (err) {
+        statusEl.className = "error";
+        statusEl.innerText = "❌ Error de conexión: " + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

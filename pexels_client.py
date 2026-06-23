@@ -25,7 +25,7 @@ def search_video(query: str, orientation: str = "portrait", min_duration: int = 
         "size": "medium",
     }
 
-    resp = requests.get(PEXELS_SEARCH_URL, headers=headers, params=params, timeout=20)
+    resp = requests.get(PEXELS_SEARCH_URL, headers=headers, params=params, timeout=15)
     resp.raise_for_status()
     data = resp.json()
 
@@ -48,7 +48,7 @@ def search_video(query: str, orientation: str = "portrait", min_duration: int = 
 
 def download_video(url: str, output_path: str):
     """Descarga un video desde una URL a una ruta local."""
-    resp = requests.get(url, stream=True, timeout=60)
+    resp = requests.get(url, stream=True, timeout=30)
     resp.raise_for_status()
     with open(output_path, "wb") as f:
         for chunk in resp.iter_content(chunk_size=8192):

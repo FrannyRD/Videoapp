@@ -58,16 +58,26 @@ def _wrap_text(text: str, max_chars_per_line: int = 18) -> list:
 
 
 def normalize_clip(input_path: str, output_path: str, duration: float, text: str = None,
-                    font_path: str = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+                    font_path: str = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                    zoom: bool = True, fps: int = 30):
     """
     Recorta/ajusta un clip a la resolución de TRABAJO (más liviana en memoria),
-    a la duración exacta requerida, y opcionalmente le agrega texto incrustado.
+    a la duración exacta requerida, le agrega un zoom lento (efecto "Ken Burns")
+    para que no se vea estático, y opcionalmente texto incrustado (fijo, sin zoom).
     La resolución final (1080x1920) se aplica al final con upscale_to_final().
     """
     vf_filters = [
         f"scale={WORK_W}:{WORK_H}:force_original_aspect_ratio=increase",
         f"crop={WORK_W}:{WORK_H}",
     ]
+
+    if zoom:
+        total_frames = max(round(duration * fps), 1)
+        target_zoom = 1.12
+        increment = (target_zoom - 1) / total_frames
+        vf_filters.append(
+            f"zoompan=z='min(zoom+{increment:.6f},{target_zoom})':d=1:s={WORK_W}x{WORK_H}:fps={fps}"
+        )
 
     if text:
         lines = _wrap_text(text, max_chars_per_line=18)
@@ -84,7 +94,7 @@ def normalize_clip(input_path: str, output_path: str, duration: float, text: str
             f"fontcolor=white:fontsize={fontsize}:box=1:boxcolor=black@0.55:boxborderw={boxborder}:"
             f"x=(w-text_w)/2:y=h-{y_offset}:line_spacing={line_spacing}"
         )
-        vf_filters.append(drawtext)
+        vf_filters.append(drawtext)  # se agrega DESPUÉS del zoom, para que el texto quede fijo y nítido
 
     vf = ",".join(vf_filters)
 

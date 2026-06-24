@@ -7,6 +7,7 @@
 <style>
   body { font-family: -apple-system, Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; background: #0d0d1a; color: #eee; }
   h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 28px; color: #ccc; }
   .scene { background: #1a1a2e; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
   textarea, select, input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #111; color: #eee; }
   label { font-size: 0.85rem; color: #aaa; }
@@ -17,12 +18,26 @@
   .error { background: #4a1414; color: #ffb4b4; }
   .success { background: #14361f; color: #b6f0c5; }
   #downloadLink { display: inline-block; margin-top: 10px; color: #93c5fd; }
+  .progress-wrap { background: #222; border-radius: 8px; height: 18px; margin-top: 8px; overflow: hidden; }
+  .progress-bar { background: #4f46e5; height: 100%; width: 0%; transition: width 0.4s ease; }
+  .idea-card { background: #16213e; border: 1px solid #2c3e64; border-radius: 10px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
+  .idea-card:hover { background: #1c2a4d; }
+  .idea-card h3 { margin: 0 0 4px 0; font-size: 1rem; }
+  .idea-card p { margin: 0; font-size: 0.82rem; color: #9aa5c4; }
+  .tag { display:inline-block; background:#2c3e64; color:#bcd; font-size:0.7rem; padding:2px 8px; border-radius:12px; margin-top:6px; }
+  details summary { cursor: pointer; color: #93c5fd; font-size: 0.9rem; margin: 14px 0; }
 </style>
 </head>
 <body>
-  <h1>🎬 Generador de Reels — Enigma Diario</h1>
-  <p style="color:#999; font-size:0.9rem;">Agrega cada escena con su texto y una palabra clave en inglés para buscar el video de fondo (ej: "dark cave", "treasure map").</p>
+  <h1>Generador de Reels — Enigma Diario</h1>
 
+  <details>
+    <summary>💡 Ideas de contenido listas para usar (click para ver)</summary>
+    <p style="color:#999; font-size:0.85rem;">Toca cualquier idea para cargar el guion completo automáticamente abajo. Son las 7 ideas pensadas para tu nicho de misterios y curiosidades.</p>
+    <div id="ideas"></div>
+  </details>
+
+  <h2>Tu guion</h2>
   <div id="scenes"></div>
 
   <button onclick="addScene()">+ Agregar escena</button>
@@ -53,6 +68,99 @@
   <script>
     let sceneCount = 0;
 
+    // ---------- Banco de ideas de contenido ----------
+    const IDEAS = [
+      {
+        title: "El código que nadie ha podido descifrar",
+        tag: "Misterio histórico",
+        scenes: [
+          { text: "Este código lleva sin resolverse más de 100 años", keyword: "old typewriter desk" },
+          { text: "Se llama el Cifrado de Beale, y promete un tesoro escondido", keyword: "treasure map vintage" },
+          { text: "Solo 1 de los 3 textos fue descifrado. Reveló millones en oro", keyword: "gold coins treasure chest" },
+          { text: "Los otros dos siguen sin resolverse. Cientos lo han intentado", keyword: "frustrated man dark room" }
+        ]
+      },
+      {
+        title: "El experimento más perturbador de la historia",
+        tag: "Ciencia oscura",
+        scenes: [
+          { text: "En 1961 un científico hizo algo que cambiaría la psicología para siempre", keyword: "old laboratory vintage" },
+          { text: "Quería saber si la gente común podía hacer cosas terribles bajo órdenes", keyword: "man hesitating decision" },
+          { text: "El resultado horrorizó al mundo entero", keyword: "newspaper headline dramatic" }
+        ]
+      },
+      {
+        title: "El lugar que la ciencia no puede explicar",
+        tag: "Fenómeno inexplicable",
+        scenes: [
+          { text: "En medio del océano hay una zona donde las brújulas dejan de funcionar", keyword: "deep ocean compass" },
+          { text: "Decenas de barcos y aviones han desaparecido sin dejar rastro", keyword: "abandoned ship fog" },
+          { text: "Nadie ha podido explicar por qué pasa esto", keyword: "mysterious fog ocean" }
+        ]
+      },
+      {
+        title: "El hallazgo que reescribió la historia",
+        tag: "Arqueología",
+        scenes: [
+          { text: "Un granjero estaba arando su campo cuando encontró algo imposible", keyword: "ancient ruins desert" },
+          { text: "Era una ciudad completa, enterrada por miles de años", keyword: "archaeology dig site" },
+          { text: "Cambió todo lo que sabíamos sobre esa civilización", keyword: "ancient artifact museum" }
+        ]
+      },
+      {
+        title: "La pregunta que nadie puede responder",
+        tag: "Dato curioso / ciencia",
+        scenes: [
+          { text: "¿Sabías que no sabemos exactamente por qué bostezamos?", keyword: "person yawning tired" },
+          { text: "Hay varias teorías, pero ninguna se ha podido comprobar del todo", keyword: "scientist thinking lab" },
+          { text: "Algo tan simple, y sigue siendo un misterio", keyword: "question mark concept" }
+        ]
+      },
+      {
+        title: "El edificio que nadie quiere visitar de noche",
+        tag: "Historia / misterio urbano",
+        scenes: [
+          { text: "Este edificio lleva más de 50 años abandonado", keyword: "abandoned building night" },
+          { text: "Los vecinos dicen escuchar sonidos que no tienen explicación", keyword: "dark hallway empty" },
+          { text: "Nadie se ha atrevido a investigar a fondo qué pasa ahí", keyword: "flashlight dark room" }
+        ]
+      },
+      {
+        title: "El objeto que la ciencia no sabe de dónde vino",
+        tag: "Misterio / objetos antiguos",
+        scenes: [
+          { text: "Este objeto fue encontrado dentro de una roca de millones de años", keyword: "ancient rock formation" },
+          { text: "Su tecnología no debería existir para esa época", keyword: "old mechanism gears" },
+          { text: "Hasta hoy, nadie sabe cómo llegó ahí", keyword: "mystery object museum" }
+        ]
+      }
+    ];
+
+    function renderIdeas() {
+      const container = document.getElementById("ideas");
+      IDEAS.forEach((idea, idx) => {
+        const div = document.createElement("div");
+        div.className = "idea-card";
+        div.onclick = () => loadIdea(idx);
+        div.innerHTML = `
+          <h3>${idea.title}</h3>
+          <p>${idea.scenes.length} escenas listas</p>
+          <span class="tag">${idea.tag}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function loadIdea(idx) {
+      document.getElementById("scenes").innerHTML = "";
+      sceneCount = 0;
+      IDEAS[idx].scenes.forEach(s => addScene(s.text, s.keyword));
+      document.getElementById("status").className = "";
+      document.getElementById("status").innerText = `✅ Guion "${IDEAS[idx].title}" cargado. Revisa las escenas y genera el video.`;
+      window.scrollTo({ top: document.getElementById("scenes").offsetTop - 20, behavior: "smooth" });
+    }
+
+    // ---------- Escenas ----------
     function addScene(text = "", keyword = "") {
       sceneCount++;
       const div = document.createElement("div");
@@ -70,11 +178,12 @@
       document.getElementById("scenes").appendChild(div);
     }
 
-    // Arrancamos con 3 escenas vacías de ejemplo
-    addScene("Este código lleva sin resolverse más de 100 años", "typewriter");
-    addScene("Promete un tesoro escondido de millones de dólares", "treasure map");
-    addScene("Cientos lo han intentado. Nadie lo ha logrado", "puzzle thinking");
+    renderIdeas();
+    // Arrancamos con la primera idea ya cargada de ejemplo
+    loadIdea(0);
+    document.getElementById("status").innerText = "";
 
+    // ---------- Generación ----------
     async function generateVideo() {
       const scenes = [];
       document.querySelectorAll("#scenes .scene").forEach(div => {
@@ -96,7 +205,7 @@
 
       btn.disabled = true;
       statusEl.className = "";
-      statusEl.innerText = "⏳ Enviando...";
+      statusEl.innerHTML = `⏳ Enviando... <div class="progress-wrap"><div class="progress-bar" id="bar" style="width:0%"></div></div>`;
 
       try {
         const resp = await fetch("/api/generate", {
@@ -113,7 +222,6 @@
           return;
         }
 
-        statusEl.innerText = "⏳ Generando video... esto puede tardar 1-3 minutos. No cierres esta pestaña.";
         pollStatus(data.job_id, statusEl, btn);
 
       } catch (err) {
@@ -124,7 +232,7 @@
     }
 
     async function pollStatus(jobId, statusEl, btn) {
-      const maxAttempts = 90; // ~7.5 minutos máximo (90 * 5s)
+      const maxAttempts = 90; // ~7.5 minutos máximo
       let attempts = 0;
 
       const interval = setInterval(async () => {
@@ -148,12 +256,16 @@
             statusEl.className = "error";
             statusEl.innerText = "⏱️ Está tardando demasiado. Revisa los logs en Render.";
             btn.disabled = false;
+          } else {
+            const pct = data.progress_pct || 0;
+            const text = data.progress_text || "Procesando...";
+            statusEl.className = "";
+            statusEl.innerHTML = `⏳ ${text}<div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
           }
-          // si sigue "processing", no hacemos nada y esperamos el próximo intento
         } catch (err) {
           // un fallo de red puntual al consultar no debe detener el polling
         }
-      }, 5000);
+      }, 4000);
     }
   </script>
 </body>

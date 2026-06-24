@@ -112,46 +112,48 @@ def concat_clips(clip_paths: list, output_path: str):
 def concat_clips_with_transitions(clip_paths: list, output_path: str, transition: float = 0.5):
     """
     Concatena clips con un crossfade (fundido) suave entre cada uno.
-    Cada clip debe venir ya con `transition` segundos EXTRA de duración (ver pipeline.py),
-    para que el fundido no le "robe" tiempo a la escena que coincide con la voz.
+    Los procesa de A PARES, secuencialmente (no todos a la vez), para no disparar
+    el uso de memoria en servidores con poco RAM (ej. plan gratis de Render).
     """
     n = len(clip_paths)
     if n == 1:
         return concat_clips(clip_paths, output_path)
 
-    durations = [get_duration(p) for p in clip_paths]
+    work_dir = os.path.dirname(output_path) or "."
+    current = clip_paths[0]
+    is_temp_current = False
 
-    inputs = []
-    for p in clip_paths:
-        inputs += ["-i", p]
-
-    filter_parts = []
-    cumulative = durations[0]
-    last_label = "0"
     for i in range(1, n):
-        offset = cumulative - transition
-        out_label = f"v{i}" if i < n - 1 else "vout"
-        filter_parts.append(
-            f"[{last_label}][{i}]xfade=transition=fade:duration={transition}:offset={offset:.3f}[{out_label}]"
-        )
-        cumulative = cumulative + durations[i] - transition
-        last_label = out_label
+        next_clip = clip_paths[i]
+        is_last = (i == n - 1)
+        step_output = output_path if is_last else os.path.join(work_dir, f"_xfade_step_{i}.mp4")
 
-    filter_complex = ";".join(filter_parts)
+        current_duration = get_duration(current)
+        offset = max(current_duration - transition, 0)
 
-    cmd = [
-        "ffmpeg", "-y",
-        *inputs,
-        "-filter_complex", filter_complex,
-        "-map", "[vout]",
-        "-r", "30",
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-threads", "1",
-        "-pix_fmt", "yuv420p",
-        output_path,
-    ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", current,
+            "-i", next_clip,
+            "-filter_complex",
+            f"[0:v]fps=30,settb=AVTB[v0];[1:v]fps=30,settb=AVTB[v1];"
+            f"[v0][v1]xfade=transition=fade:duration={transition}:offset={offset:.3f}[vout]",
+            "-map", "[vout]",
+            "-r", "30",
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-threads", "1",
+            "-pix_fmt", "yuv420p",
+            step_output,
+        ]
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+        if is_temp_current:
+            os.remove(current)
+
+        current = step_output
+        is_temp_current = not is_last
+
     return output_path
 
 

@@ -29,8 +29,12 @@ JOBS = {}
 
 def _run_job(job_id, scenes, voice, music_key):
     try:
-        JOBS[job_id] = {"status": "processing"}
-        final_path = generate_video(scenes, music_key=music_key, voice=voice, job_id=job_id)
+        JOBS[job_id] = {"status": "processing", "progress_text": "Iniciando...", "progress_pct": 0}
+
+        def on_progress(text, percent):
+            JOBS[job_id] = {"status": "processing", "progress_text": text, "progress_pct": percent}
+
+        final_path = generate_video(scenes, music_key=music_key, voice=voice, job_id=job_id, on_progress=on_progress)
         filename = os.path.basename(final_path)
         JOBS[job_id] = {"status": "done", "download_url": f"/download/{filename}"}
     except Exception as e:

@@ -27,10 +27,10 @@ VOICES = {
 JOBS = {}
 
 
-def _run_job(job_id, scenes, voice):
+def _run_job(job_id, scenes, voice, music_key):
     try:
         JOBS[job_id] = {"status": "processing"}
-        final_path = generate_video(scenes, music_path=None, voice=voice, job_id=job_id)
+        final_path = generate_video(scenes, music_key=music_key, voice=voice, job_id=job_id)
         filename = os.path.basename(final_path)
         JOBS[job_id] = {"status": "done", "download_url": f"/download/{filename}"}
     except Exception as e:
@@ -56,6 +56,7 @@ def api_generate():
     data = request.get_json(force=True)
     scenes = data.get("scenes", [])
     voice_key = data.get("voice", "mexico_hombre")
+    music_key = data.get("music", "mystery")
 
     if not scenes or len(scenes) == 0:
         return jsonify({"error": "Debes agregar al menos una escena (texto + palabra clave)."}), 400
@@ -69,7 +70,7 @@ def api_generate():
     job_id = str(uuid.uuid4())[:8]
     JOBS[job_id] = {"status": "processing"}
 
-    thread = threading.Thread(target=_run_job, args=(job_id, scenes, voice), daemon=True)
+    thread = threading.Thread(target=_run_job, args=(job_id, scenes, voice, music_key), daemon=True)
     thread.start()
 
     return jsonify({"ok": True, "job_id": job_id})

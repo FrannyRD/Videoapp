@@ -80,6 +80,8 @@ def normalize_clip(input_path: str, output_path: str, duration: float, text: str
         "-vf", vf,
         "-r", "30",
         "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-threads", "1",
         "-pix_fmt", "yuv420p",
         "-an",  # sin audio del clip original (usaremos la voz aparte)
         output_path,

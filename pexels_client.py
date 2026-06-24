@@ -36,13 +36,19 @@ def search_video(query: str, orientation: str = "portrait", min_duration: int = 
     # Elegimos el primer video que cumpla con duración mínima
     for video in videos:
         if video.get("duration", 0) >= min_duration:
-            # Buscamos el archivo HD vertical más cercano a 1080x1920
             files = video.get("video_files", [])
-            # Preferimos calidad "hd" para no descargar 4K pesado innecesariamente
-            hd_files = [f for f in files if f.get("quality") == "hd"]
-            chosen = hd_files[0] if hd_files else (files[0] if files else None)
-            if chosen:
-                return chosen["link"]
+            if not files:
+                continue
+            # Filtramos solo archivos mp4 con ancho conocido
+            files = [f for f in files if f.get("file_type") == "video/mp4" and f.get("width")]
+            if not files:
+                continue
+            # Elegimos el archivo MÁS LIVIANO posible que aún se vea bien (ancho >= 640px),
+            # para no agotar la memoria en servidores con poco RAM (ej. plan gratis de Render).
+            candidates = [f for f in files if f["width"] >= 640]
+            pool = candidates if candidates else files
+            chosen = min(pool, key=lambda f: f["width"])
+            return chosen["link"]
     return None
 
 

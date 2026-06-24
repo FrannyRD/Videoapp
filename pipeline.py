@@ -54,6 +54,7 @@ def generate_video(scenes: list, music_path: str = None, voice: str = None, job_
             # 3. Normalizar el clip (recortar a 1080x1920, duración exacta, texto incrustado)
             scene_path = os.path.join(job_dir, f"scene_{i}.mp4")
             vb.normalize_clip(raw_clip_path, scene_path, duration=duration, text=text)
+            os.remove(raw_clip_path)  # liberar espacio/memoria, ya no se necesita
             print(f"[job {job_id}] Escena {i}: lista.", flush=True)
 
             scene_clip_paths.append(scene_path)

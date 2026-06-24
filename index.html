@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Videos - Enigma Diario</title>
+<style>
+  body { font-family: -apple-system, Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; background: #0d0d1a; color: #eee; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 28px; color: #ccc; }
+  .scene { background: #1a1a2e; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  textarea, select, input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #111; color: #eee; }
+  label { font-size: 0.85rem; color: #aaa; }
+  button { background: #4f46e5; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+  button:disabled { background: #555; }
+  #removeBtns button { background: #b91c1c; padding: 4px 10px; font-size: 0.8rem; }
+  #status { margin-top: 16px; padding: 10px; border-radius: 8px; }
+  .error { background: #4a1414; color: #ffb4b4; }
+  .success { background: #14361f; color: #b6f0c5; }
+  #downloadLink { display: inline-block; margin-top: 10px; color: #93c5fd; }
+  .progress-wrap { background: #222; border-radius: 8px; height: 18px; margin-top: 8px; overflow: hidden; }
+  .progress-bar { background: #4f46e5; height: 100%; width: 0%; transition: width 0.4s ease; }
+  .idea-card { background: #16213e; border: 1px solid #2c3e64; border-radius: 10px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
+  .idea-card:hover { background: #1c2a4d; }
+  .idea-card h3 { margin: 0 0 4px 0; font-size: 1rem; }
+  .idea-card p { margin: 0; font-size: 0.82rem; color: #9aa5c4; }
+  .tag { display:inline-block; background:#2c3e64; color:#bcd; font-size:0.7rem; padding:2px 8px; border-radius:12px; margin-top:6px; }
+  details summary { cursor: pointer; color: #93c5fd; font-size: 0.9rem; margin: 14px 0; }
+</style>
+</head>
+<body>
+  <h1>Generador de Reels — Enigma Diario</h1>
+
+  <details>
+    <summary>💡 Ideas de contenido listas para usar (click para ver)</summary>
+    <p style="color:#999; font-size:0.85rem;">Toca cualquier idea para cargar el guion completo automáticamente abajo. Son las 7 ideas pensadas para tu nicho de misterios y curiosidades.</p>
+    <div id="ideas"></div>
+  </details>
+
+  <h2>Tu guion</h2>
+  <div id="scenes"></div>
+
+  <button onclick="addScene()">+ Agregar escena</button>
+
+  <div class="scene" style="margin-top:20px;">
+    <label>Voz</label>
+    <select id="voice">
+      <option value="mexico_hombre">Español México (Hombre)</option>
+      <option value="espana_hombre">Español España (Hombre)</option>
+      <option value="espana_mujer">Español España (Mujer)</option>
+    </select>
+  </div>
+
+  <div class="scene">
+    <label>Música de fondo</label>
+    <select id="music">
+      <option value="mystery">Misterio (recomendado para Enigma Diario)</option>
+      <option value="suspense">Suspenso</option>
+      <option value="epic">Épica</option>
+      <option value="none">Sin música</option>
+    </select>
+  </div>
+
+  <button id="generateBtn" onclick="generateVideo()">🎥 Generar video</button>
+
+  <div id="status"></div>
+
+  <script>
+    let sceneCount = 0;
+
+    // ---------- Banco de ideas de contenido ----------
+    const IDEAS = [
+      {
+        title: "El pueblo que desapareció en una noche",
+        tag: "Desaparición sin resolver",
+        scenes: [
+          { text: "En 1930, un pueblo entero desapareció sin dejar rastro", keyword: "abandoned village fog" },
+          { text: "Un barco llegó a hacer su entrega mensual de comida", keyword: "ship approaching coast" },
+          { text: "Encontraron las casas completamente intactas", keyword: "empty house interior" },
+          { text: "La comida seguía caliente sobre las mesas", keyword: "table food abandoned" },
+          { text: "No había señales de lucha, ni sangre, ni desorden", keyword: "empty room silence" },
+          { text: "Los relojes se habían detenido todos a la misma hora", keyword: "old clock stopped" },
+          { text: "Jamás se encontró a ninguno de los habitantes", keyword: "search team forest" },
+          { text: "¿Tú qué crees que pasó esa noche? Coméntalo", keyword: "foggy forest path" }
+        ]
+      },
+      {
+        title: "El objeto que no debería existir",
+        tag: "Objeto imposible",
+        scenes: [
+          { text: "Este objeto fue encontrado dentro de una roca de 300 millones de años", keyword: "rock formation cracked" },
+          { text: "Un minero lo descubrió al partir la piedra con un martillo", keyword: "miner hammer rock" },
+          { text: "Era una pieza de metal, perfectamente fabricada", keyword: "metal mechanism closeup" },
+          { text: "Esa tecnología no debería existir para esa época", keyword: "old gears mechanism" },
+          { text: "Varios científicos lo examinaron sin encontrar explicación", keyword: "scientist examining object" },
+          { text: "Algunos creen que es prueba de civilizaciones antiguas avanzadas", keyword: "ancient ruins mystery" },
+          { text: "Otros dicen que es una simple coincidencia geológica", keyword: "laboratory research desk" },
+          { text: "¿Tecnología antigua o coincidencia? Dime qué piensas", keyword: "mysterious artifact museum" }
+        ]
+      },
+      {
+        title: "La señal que llegó del espacio",
+        tag: "Misterio espacial",
+        scenes: [
+          { text: "En 1977 un telescopio captó una señal de 72 segundos", keyword: "radio telescope night" },
+          { text: "Era tan fuerte que el científico escribió \"Wow\" junto al dato", keyword: "astronomer writing notes" },
+          { text: "Venía de una zona exacta del espacio, sin explicación natural conocida", keyword: "starry sky space" },
+          { text: "Intentaron captarla de nuevo cientos de veces", keyword: "satellite dish array" },
+          { text: "Nunca volvió a repetirse", keyword: "empty night sky" },
+          { text: "Hasta hoy, nadie ha podido explicar su origen", keyword: "scientist looking telescope" },
+          { text: "Algunos la consideran la mejor evidencia de vida extraterrestre jamás registrada", keyword: "deep space stars" },
+          { text: "¿Crees que fue contacto real? Cuéntame tu teoría", keyword: "observatory dome night" }
+        ]
+      },
+      {
+        title: "El experimento que se les salió de control",
+        tag: "Ciencia oscura",
+        scenes: [
+          { text: "En los años 60 un científico quiso saber qué tan obediente puede ser una persona", keyword: "old laboratory vintage" },
+          { text: "Pidió a voluntarios dar \"descargas\" a otra persona si fallaba una prueba", keyword: "man hesitating decision" },
+          { text: "La persona \"castigada\" estaba actuando, pero los voluntarios no lo sabían", keyword: "actor pretending pain" },
+          { text: "La mayoría siguió obedeciendo aunque escuchaban gritos de dolor", keyword: "hands covering face" },
+          { text: "Solo porque una persona con bata blanca les decía que continuaran", keyword: "scientist clipboard authority" },
+          { text: "El experimento reveló algo perturbador sobre la naturaleza humana", keyword: "newspaper headline dramatic" },
+          { text: "Hoy sería imposible repetirlo por sus implicaciones éticas", keyword: "old documents archive" },
+          { text: "¿Tú hubieras seguido las órdenes? Sé honesto en los comentarios", keyword: "empty chair room" }
+        ]
+      },
+      {
+        title: "La ciudad bajo el océano",
+        tag: "Ruinas submarinas",
+        scenes: [
+          { text: "Buzos encontraron estructuras de piedra perfectamente alineadas bajo el mar", keyword: "deep ocean diver" },
+          { text: "Parecían calles, escalones y muros de una civilización antigua", keyword: "underwater ruins stone" },
+          { text: "El problema es que esa zona lleva miles de años bajo el agua", keyword: "ocean floor coral" },
+          { text: "Eso significaría que alguien construyó esto antes de que existiera el mar ahí", keyword: "ancient underwater structure" },
+          { text: "Los arqueólogos siguen divididos sobre su origen real", keyword: "scientist underwater research" },
+          { text: "Algunos creen que es solo una formación natural de roca", keyword: "rock formation ocean" },
+          { text: "Otros insisten en que es una ciudad perdida real", keyword: "sunken ship ocean" },
+          { text: "¿Formación natural o ciudad perdida? Dame tu veredicto", keyword: "deep blue ocean" }
+        ]
+      },
+      {
+        title: "La maldición de la tumba",
+        tag: "Misterio histórico",
+        scenes: [
+          { text: "En 1922 un equipo abrió una tumba sellada hace 3000 años", keyword: "ancient tomb desert" },
+          { text: "Una inscripción en la entrada advertía sobre una maldición", keyword: "ancient hieroglyphs wall" },
+          { text: "Pocas semanas después, el primer hombre que entró murió de forma extraña", keyword: "desert excavation site" },
+          { text: "En los siguientes años, varias personas relacionadas con la tumba también murieron", keyword: "old newspaper archive" },
+          { text: "La prensa de la época habló de \"la maldición del faraón\"", keyword: "vintage newspaper headline" },
+          { text: "Los científicos dicen que fueron solo coincidencias y bacterias antiguas", keyword: "scientist laboratory research" },
+          { text: "Pero la lista de muertes relacionadas sigue siendo inquietante", keyword: "egypt desert ruins" },
+          { text: "¿Maldición real o casualidad? Quiero leer tu opinión", keyword: "ancient egyptian artifact" }
+        ]
+      },
+      {
+        title: "El código que nadie ha podido descifrar",
+        tag: "Misterio histórico",
+        scenes: [
+          { text: "Este código lleva sin resolverse más de 100 años", keyword: "old typewriter desk" },
+          { text: "Se llama el Cifrado de Beale, y promete un tesoro escondido", keyword: "treasure map vintage" },
+          { text: "Solo 1 de los 3 textos fue descifrado. Reveló millones en oro", keyword: "gold coins treasure chest" },
+          { text: "Los otros dos siguen sin resolverse. Cientos lo han intentado", keyword: "frustrated man dark room" }
+        ]
+      },
+      {
+        title: "El lugar que la ciencia no puede explicar",
+        tag: "Fenómeno inexplicable",
+        scenes: [
+          { text: "En medio del océano hay una zona donde las brújulas dejan de funcionar", keyword: "deep ocean compass" },
+          { text: "Decenas de barcos y aviones han desaparecido sin dejar rastro", keyword: "abandoned ship fog" },
+          { text: "Nadie ha podido explicar por qué pasa esto", keyword: "mysterious fog ocean" }
+        ]
+      }
+    ];
+
+    function renderIdeas() {
+      const container = document.getElementById("ideas");
+      IDEAS.forEach((idea, idx) => {
+        const div = document.createElement("div");
+        div.className = "idea-card";
+        div.onclick = () => loadIdea(idx);
+        div.innerHTML = `
+          <h3>${idea.title}</h3>
+          <p>${idea.scenes.length} escenas listas</p>
+          <span class="tag">${idea.tag}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function loadIdea(idx) {
+      document.getElementById("scenes").innerHTML = "";
+      sceneCount = 0;
+      IDEAS[idx].scenes.forEach(s => addScene(s.text, s.keyword));
+      document.getElementById("status").className = "";
+      document.getElementById("status").innerText = `✅ Guion "${IDEAS[idx].title}" cargado. Revisa las escenas y genera el video.`;
+      window.scrollTo({ top: document.getElementById("scenes").offsetTop - 20, behavior: "smooth" });
+    }
+
+    // ---------- Escenas ----------
+    function addScene(text = "", keyword = "") {
+      sceneCount++;
+      const div = document.createElement("div");
+      div.className = "scene";
+      div.id = "scene-" + sceneCount;
+      div.innerHTML = `
+        <label>Escena ${sceneCount} — Texto / voz</label>
+        <textarea rows="2" class="scene-text">${text}</textarea>
+        <label>Palabra clave (inglés, para buscar el video)</label>
+        <input type="text" class="scene-keyword" value="${keyword}" placeholder="ej: dark cave">
+        <div id="removeBtns">
+          <button onclick="document.getElementById('scene-${sceneCount}').remove()">Quitar escena</button>
+        </div>
+      `;
+      document.getElementById("scenes").appendChild(div);
+    }
+
+    renderIdeas();
+    // Arrancamos con la primera idea ya cargada de ejemplo
+    loadIdea(0);
+    document.getElementById("status").innerText = "";
+
+    // ---------- Generación ----------
+    async function generateVideo() {
+      const scenes = [];
+      document.querySelectorAll("#scenes .scene").forEach(div => {
+        const text = div.querySelector(".scene-text").value.trim();
+        const keyword = div.querySelector(".scene-keyword").value.trim();
+        if (text && keyword) scenes.push({ text, keyword });
+      });
+
+      const voice = document.getElementById("voice").value;
+      const music = document.getElementById("music").value;
+      const statusEl = document.getElementById("status");
+      const btn = document.getElementById("generateBtn");
+
+      if (scenes.length === 0) {
+        statusEl.className = "error";
+        statusEl.innerText = "Agrega al menos una escena con texto y palabra clave.";
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.className = "";
+      statusEl.innerHTML = `⏳ Enviando... <div class="progress-wrap"><div class="progress-bar" id="bar" style="width:0%"></div></div>`;
+
+      try {
+        const resp = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenes, voice, music })
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+          statusEl.className = "error";
+          statusEl.innerText = "❌ Error: " + data.error;
+          btn.disabled = false;
+          return;
+        }
+
+        pollStatus(data.job_id, statusEl, btn);
+
+      } catch (err) {
+        statusEl.className = "error";
+        statusEl.innerText = "❌ Error de conexión: " + err.message;
+        btn.disabled = false;
+      }
+    }
+
+    async function pollStatus(jobId, statusEl, btn) {
+      const maxAttempts = 300; // ~20 minutos máximo (guiones largos de 8 escenas tardan más)
+      let attempts = 0;
+
+      const interval = setInterval(async () => {
+        attempts++;
+        try {
+          const resp = await fetch(`/api/status/${jobId}`);
+          const data = await resp.json();
+
+          if (data.status === "done") {
+            clearInterval(interval);
+            statusEl.className = "success";
+            statusEl.innerHTML = `✅ ¡Video listo! <a id="downloadLink" href="${data.download_url}">Descargar video</a>`;
+            btn.disabled = false;
+          } else if (data.status === "error") {
+            clearInterval(interval);
+            statusEl.className = "error";
+            statusEl.innerText = "❌ Error: " + data.error;
+            btn.disabled = false;
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            statusEl.className = "error";
+            statusEl.innerHTML = `⏱️ Está tardando más de lo esperado, pero puede seguir trabajando en el servidor.<br>Revisa en unos minutos: <a href="/api/status/${jobId}" target="_blank">/api/status/${jobId}</a>`;
+            btn.disabled = false;
+          } else {
+            const pct = data.progress_pct || 0;
+            const text = data.progress_text || "Procesando...";
+            statusEl.className = "";
+            statusEl.innerHTML = `⏳ ${text}<div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+          }
+        } catch (err) {
+          // un fallo de red puntual al consultar no debe detener el polling
+        }
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

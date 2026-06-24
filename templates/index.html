@@ -71,6 +71,90 @@
     // ---------- Banco de ideas de contenido ----------
     const IDEAS = [
       {
+        title: "El pueblo que desapareció en una noche",
+        tag: "Desaparición sin resolver",
+        scenes: [
+          { text: "En 1930, un pueblo entero desapareció sin dejar rastro", keyword: "abandoned village fog" },
+          { text: "Un barco llegó a hacer su entrega mensual de comida", keyword: "ship approaching coast" },
+          { text: "Encontraron las casas completamente intactas", keyword: "empty house interior" },
+          { text: "La comida seguía caliente sobre las mesas", keyword: "table food abandoned" },
+          { text: "No había señales de lucha, ni sangre, ni desorden", keyword: "empty room silence" },
+          { text: "Los relojes se habían detenido todos a la misma hora", keyword: "old clock stopped" },
+          { text: "Jamás se encontró a ninguno de los habitantes", keyword: "search team forest" },
+          { text: "¿Tú qué crees que pasó esa noche? Coméntalo", keyword: "foggy forest path" }
+        ]
+      },
+      {
+        title: "El objeto que no debería existir",
+        tag: "Objeto imposible",
+        scenes: [
+          { text: "Este objeto fue encontrado dentro de una roca de 300 millones de años", keyword: "rock formation cracked" },
+          { text: "Un minero lo descubrió al partir la piedra con un martillo", keyword: "miner hammer rock" },
+          { text: "Era una pieza de metal, perfectamente fabricada", keyword: "metal mechanism closeup" },
+          { text: "Esa tecnología no debería existir para esa época", keyword: "old gears mechanism" },
+          { text: "Varios científicos lo examinaron sin encontrar explicación", keyword: "scientist examining object" },
+          { text: "Algunos creen que es prueba de civilizaciones antiguas avanzadas", keyword: "ancient ruins mystery" },
+          { text: "Otros dicen que es una simple coincidencia geológica", keyword: "laboratory research desk" },
+          { text: "¿Tecnología antigua o coincidencia? Dime qué piensas", keyword: "mysterious artifact museum" }
+        ]
+      },
+      {
+        title: "La señal que llegó del espacio",
+        tag: "Misterio espacial",
+        scenes: [
+          { text: "En 1977 un telescopio captó una señal de 72 segundos", keyword: "radio telescope night" },
+          { text: "Era tan fuerte que el científico escribió \"Wow\" junto al dato", keyword: "astronomer writing notes" },
+          { text: "Venía de una zona exacta del espacio, sin explicación natural conocida", keyword: "starry sky space" },
+          { text: "Intentaron captarla de nuevo cientos de veces", keyword: "satellite dish array" },
+          { text: "Nunca volvió a repetirse", keyword: "empty night sky" },
+          { text: "Hasta hoy, nadie ha podido explicar su origen", keyword: "scientist looking telescope" },
+          { text: "Algunos la consideran la mejor evidencia de vida extraterrestre jamás registrada", keyword: "deep space stars" },
+          { text: "¿Crees que fue contacto real? Cuéntame tu teoría", keyword: "observatory dome night" }
+        ]
+      },
+      {
+        title: "El experimento que se les salió de control",
+        tag: "Ciencia oscura",
+        scenes: [
+          { text: "En los años 60 un científico quiso saber qué tan obediente puede ser una persona", keyword: "old laboratory vintage" },
+          { text: "Pidió a voluntarios dar \"descargas\" a otra persona si fallaba una prueba", keyword: "man hesitating decision" },
+          { text: "La persona \"castigada\" estaba actuando, pero los voluntarios no lo sabían", keyword: "actor pretending pain" },
+          { text: "La mayoría siguió obedeciendo aunque escuchaban gritos de dolor", keyword: "hands covering face" },
+          { text: "Solo porque una persona con bata blanca les decía que continuaran", keyword: "scientist clipboard authority" },
+          { text: "El experimento reveló algo perturbador sobre la naturaleza humana", keyword: "newspaper headline dramatic" },
+          { text: "Hoy sería imposible repetirlo por sus implicaciones éticas", keyword: "old documents archive" },
+          { text: "¿Tú hubieras seguido las órdenes? Sé honesto en los comentarios", keyword: "empty chair room" }
+        ]
+      },
+      {
+        title: "La ciudad bajo el océano",
+        tag: "Ruinas submarinas",
+        scenes: [
+          { text: "Buzos encontraron estructuras de piedra perfectamente alineadas bajo el mar", keyword: "deep ocean diver" },
+          { text: "Parecían calles, escalones y muros de una civilización antigua", keyword: "underwater ruins stone" },
+          { text: "El problema es que esa zona lleva miles de años bajo el agua", keyword: "ocean floor coral" },
+          { text: "Eso significaría que alguien construyó esto antes de que existiera el mar ahí", keyword: "ancient underwater structure" },
+          { text: "Los arqueólogos siguen divididos sobre su origen real", keyword: "scientist underwater research" },
+          { text: "Algunos creen que es solo una formación natural de roca", keyword: "rock formation ocean" },
+          { text: "Otros insisten en que es una ciudad perdida real", keyword: "sunken ship ocean" },
+          { text: "¿Formación natural o ciudad perdida? Dame tu veredicto", keyword: "deep blue ocean" }
+        ]
+      },
+      {
+        title: "La maldición de la tumba",
+        tag: "Misterio histórico",
+        scenes: [
+          { text: "En 1922 un equipo abrió una tumba sellada hace 3000 años", keyword: "ancient tomb desert" },
+          { text: "Una inscripción en la entrada advertía sobre una maldición", keyword: "ancient hieroglyphs wall" },
+          { text: "Pocas semanas después, el primer hombre que entró murió de forma extraña", keyword: "desert excavation site" },
+          { text: "En los siguientes años, varias personas relacionadas con la tumba también murieron", keyword: "old newspaper archive" },
+          { text: "La prensa de la época habló de \"la maldición del faraón\"", keyword: "vintage newspaper headline" },
+          { text: "Los científicos dicen que fueron solo coincidencias y bacterias antiguas", keyword: "scientist laboratory research" },
+          { text: "Pero la lista de muertes relacionadas sigue siendo inquietante", keyword: "egypt desert ruins" },
+          { text: "¿Maldición real o casualidad? Quiero leer tu opinión", keyword: "ancient egyptian artifact" }
+        ]
+      },
+      {
         title: "El código que nadie ha podido descifrar",
         tag: "Misterio histórico",
         scenes: [
@@ -81,57 +165,12 @@
         ]
       },
       {
-        title: "El experimento más perturbador de la historia",
-        tag: "Ciencia oscura",
-        scenes: [
-          { text: "En 1961 un científico hizo algo que cambiaría la psicología para siempre", keyword: "old laboratory vintage" },
-          { text: "Quería saber si la gente común podía hacer cosas terribles bajo órdenes", keyword: "man hesitating decision" },
-          { text: "El resultado horrorizó al mundo entero", keyword: "newspaper headline dramatic" }
-        ]
-      },
-      {
         title: "El lugar que la ciencia no puede explicar",
         tag: "Fenómeno inexplicable",
         scenes: [
           { text: "En medio del océano hay una zona donde las brújulas dejan de funcionar", keyword: "deep ocean compass" },
           { text: "Decenas de barcos y aviones han desaparecido sin dejar rastro", keyword: "abandoned ship fog" },
           { text: "Nadie ha podido explicar por qué pasa esto", keyword: "mysterious fog ocean" }
-        ]
-      },
-      {
-        title: "El hallazgo que reescribió la historia",
-        tag: "Arqueología",
-        scenes: [
-          { text: "Un granjero estaba arando su campo cuando encontró algo imposible", keyword: "ancient ruins desert" },
-          { text: "Era una ciudad completa, enterrada por miles de años", keyword: "archaeology dig site" },
-          { text: "Cambió todo lo que sabíamos sobre esa civilización", keyword: "ancient artifact museum" }
-        ]
-      },
-      {
-        title: "La pregunta que nadie puede responder",
-        tag: "Dato curioso / ciencia",
-        scenes: [
-          { text: "¿Sabías que no sabemos exactamente por qué bostezamos?", keyword: "person yawning tired" },
-          { text: "Hay varias teorías, pero ninguna se ha podido comprobar del todo", keyword: "scientist thinking lab" },
-          { text: "Algo tan simple, y sigue siendo un misterio", keyword: "question mark concept" }
-        ]
-      },
-      {
-        title: "El edificio que nadie quiere visitar de noche",
-        tag: "Historia / misterio urbano",
-        scenes: [
-          { text: "Este edificio lleva más de 50 años abandonado", keyword: "abandoned building night" },
-          { text: "Los vecinos dicen escuchar sonidos que no tienen explicación", keyword: "dark hallway empty" },
-          { text: "Nadie se ha atrevido a investigar a fondo qué pasa ahí", keyword: "flashlight dark room" }
-        ]
-      },
-      {
-        title: "El objeto que la ciencia no sabe de dónde vino",
-        tag: "Misterio / objetos antiguos",
-        scenes: [
-          { text: "Este objeto fue encontrado dentro de una roca de millones de años", keyword: "ancient rock formation" },
-          { text: "Su tecnología no debería existir para esa época", keyword: "old mechanism gears" },
-          { text: "Hasta hoy, nadie sabe cómo llegó ahí", keyword: "mystery object museum" }
         ]
       }
     ];

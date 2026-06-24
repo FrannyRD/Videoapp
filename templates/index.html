@@ -36,6 +36,16 @@
     </select>
   </div>
 
+  <div class="scene">
+    <label>Música de fondo</label>
+    <select id="music">
+      <option value="mystery">Misterio (recomendado para Enigma Diario)</option>
+      <option value="suspense">Suspenso</option>
+      <option value="epic">Épica</option>
+      <option value="none">Sin música</option>
+    </select>
+  </div>
+
   <button id="generateBtn" onclick="generateVideo()">🎥 Generar video</button>
 
   <div id="status"></div>
@@ -74,6 +84,7 @@
       });
 
       const voice = document.getElementById("voice").value;
+      const music = document.getElementById("music").value;
       const statusEl = document.getElementById("status");
       const btn = document.getElementById("generateBtn");
 
@@ -91,7 +102,7 @@
         const resp = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenes, voice })
+          body: JSON.stringify({ scenes, voice, music })
         });
         const data = await resp.json();
 

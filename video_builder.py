@@ -1,11 +1,19 @@
 """
 Ensamblador de video final usando FFmpeg.
 Toma una lista de escenas (clip de video + texto + audio de voz) y genera
-un .mp4 vertical (1080x1920) listo para subir a Facebook/YouTube (Reels/Shorts).
+un .mp4 vertical listo para subir a Facebook/YouTube (Reels/Shorts).
+
+IMPORTANTE sobre memoria: el procesamiento pesado (normalizar clips + transiciones)
+se hace en una resolución reducida (WORK_W x WORK_H) para no agotar la memoria en
+servidores con poco RAM (ej. plan gratis de Render = 512MB). Al final se hace un
+único "upscale" liviano a la resolución final (FINAL_W x FINAL_H).
 """
 import os
 import subprocess
 import json
+
+WORK_W, WORK_H = 720, 1280      # resolución de trabajo (bajo consumo de memoria)
+FINAL_W, FINAL_H = 1080, 1920   # resolución final de entrega
 
 
 def get_duration(filepath: str) -> float:
@@ -52,22 +60,29 @@ def _wrap_text(text: str, max_chars_per_line: int = 18) -> list:
 def normalize_clip(input_path: str, output_path: str, duration: float, text: str = None,
                     font_path: str = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
     """
-    Recorta/ajusta un clip a 1080x1920, a la duración exacta requerida,
-    y opcionalmente le agrega texto incrustado (subtítulo) en la parte inferior.
+    Recorta/ajusta un clip a la resolución de TRABAJO (más liviana en memoria),
+    a la duración exacta requerida, y opcionalmente le agrega texto incrustado.
+    La resolución final (1080x1920) se aplica al final con upscale_to_final().
     """
     vf_filters = [
-        "scale=1080:1920:force_original_aspect_ratio=increase",
-        "crop=1080:1920",
+        f"scale={WORK_W}:{WORK_H}:force_original_aspect_ratio=increase",
+        f"crop={WORK_W}:{WORK_H}",
     ]
 
     if text:
         lines = _wrap_text(text, max_chars_per_line=18)
         safe_lines = [_escape_text_for_ffmpeg(line) for line in lines]
         safe_text = "\n".join(safe_lines)
+        # Tamaños proporcionales a la resolución de trabajo (escalados desde el diseño original a 1080 de ancho)
+        scale_factor = WORK_W / 1080
+        fontsize = round(52 * scale_factor)
+        y_offset = round(450 * scale_factor)
+        boxborder = round(20 * scale_factor)
+        line_spacing = round(14 * scale_factor)
         drawtext = (
             f"drawtext=fontfile={font_path}:expansion=none:text='{safe_text}':"
-            f"fontcolor=white:fontsize=52:box=1:boxcolor=black@0.55:boxborderw=20:"
-            f"x=(w-text_w)/2:y=h-450:line_spacing=14"
+            f"fontcolor=white:fontsize={fontsize}:box=1:boxcolor=black@0.55:boxborderw={boxborder}:"
+            f"x=(w-text_w)/2:y=h-{y_offset}:line_spacing={line_spacing}"
         )
         vf_filters.append(drawtext)
 
@@ -80,7 +95,7 @@ def normalize_clip(input_path: str, output_path: str, duration: float, text: str
         "-vf", vf,
         "-r", "30",
         "-c:v", "libx264",
-        "-preset", "veryfast",
+        "-preset", "ultrafast",
         "-threads", "1",
         "-pix_fmt", "yuv420p",
         "-an",  # sin audio del clip original (usaremos la voz aparte)
@@ -141,7 +156,7 @@ def concat_clips_with_transitions(clip_paths: list, output_path: str, transition
             "-map", "[vout]",
             "-r", "30",
             "-c:v", "libx264",
-            "-preset", "veryfast",
+            "-preset", "ultrafast",
             "-threads", "1",
             "-pix_fmt", "yuv420p",
             step_output,
@@ -154,6 +169,27 @@ def concat_clips_with_transitions(clip_paths: list, output_path: str, transition
         current = step_output
         is_temp_current = not is_last
 
+    return output_path
+
+
+def upscale_to_final(input_path: str, output_path: str, width: int = FINAL_W, height: int = FINAL_H):
+    """
+    Escala el video final (ya con voz y música mezcladas) a la resolución de entrega.
+    Es un paso liviano: un solo stream, sin transiciones ni texto que recalcular,
+    por eso no representa un riesgo de memoria como el procesamiento por escena.
+    """
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-vf", f"scale={width}:{height}",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-threads", "1",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        output_path,
+    ]
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
     return output_path
 
 

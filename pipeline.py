@@ -93,13 +93,18 @@ def generate_video(scenes: list, music_key: str = "mystery", voice: str = None,
         report("Preparando música de fondo...", 92)
         music_path = get_music_path(music_key) if music_key else None
 
-        # 7. Mezclar video + voz + música de fondo
+        # 7. Mezclar video + voz + música de fondo (todavía en resolución de trabajo, baja memoria)
         report("Generando archivo final...", 96)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        final_path = os.path.join(OUTPUT_DIR, f"video_{job_id}.mp4")
+        merged_path = os.path.join(job_dir, "merged_lowres.mp4")
         video_duration = vb.get_duration(video_silent)
-        vb.merge_video_audio_music(video_silent, voice_full, music_path, final_path,
+        vb.merge_video_audio_music(video_silent, voice_full, music_path, merged_path,
                                     music_volume=0.15, target_duration=video_duration)
+
+        # 8. Único paso de "upscale" a la resolución final de entrega (liviano, un solo stream)
+        report("Ajustando a resolución final...", 98)
+        final_path = os.path.join(OUTPUT_DIR, f"video_{job_id}.mp4")
+        vb.upscale_to_final(merged_path, final_path)
 
         report("¡Video listo!", 100)
         return final_path

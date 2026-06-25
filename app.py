@@ -8,7 +8,7 @@ import threading
 import traceback
 from flask import Flask, request, render_template, send_from_directory, jsonify
 
-from pipeline import generate_video
+from pipeline import generate_video, generate_story_video
 from tts_client import VOICE_ES_MEXICO, VOICE_ES_ESPANA_MUJER, VOICE_ES_ESPANA_HOMBRE
 
 app = Flask(__name__)
@@ -35,6 +35,22 @@ def _run_job(job_id, scenes, voice, music_key):
             JOBS[job_id] = {"status": "processing", "progress_text": text, "progress_pct": percent}
 
         final_path = generate_video(scenes, music_key=music_key, voice=voice, job_id=job_id, on_progress=on_progress)
+        filename = os.path.basename(final_path)
+        JOBS[job_id] = {"status": "done", "download_url": f"/download/{filename}"}
+    except Exception as e:
+        traceback.print_exc()
+        JOBS[job_id] = {"status": "error", "error": str(e)}
+
+
+def _run_story_job(job_id, text, keywords, voice, music_key):
+    try:
+        JOBS[job_id] = {"status": "processing", "progress_text": "Iniciando...", "progress_pct": 0}
+
+        def on_progress(text_, percent):
+            JOBS[job_id] = {"status": "processing", "progress_text": text_, "progress_pct": percent}
+
+        final_path = generate_story_video(text, keywords, music_key=music_key, voice=voice,
+                                           job_id=job_id, on_progress=on_progress)
         filename = os.path.basename(final_path)
         JOBS[job_id] = {"status": "done", "download_url": f"/download/{filename}"}
     except Exception as e:
@@ -86,6 +102,39 @@ def api_status(job_id):
     if not job:
         return jsonify({"error": "Job no encontrado."}), 404
     return jsonify(job)
+
+
+@app.route("/api/generate_story", methods=["POST"])
+def api_generate_story():
+    """
+    Espera JSON:
+    {
+        "text": "guion completo de la historia...",
+        "keywords": ["lighthouse fog", "stormy ocean", ...],  (2-4 palabras clave)
+        "voice": "mexico_hombre" | "espana_mujer" | "espana_hombre",
+        "music": "mystery" | "suspense" | "epic" | "none"
+    }
+    """
+    data = request.get_json(force=True)
+    text = (data.get("text") or "").strip()
+    keywords = [k.strip() for k in data.get("keywords", []) if k.strip()]
+    voice_key = data.get("voice", "mexico_hombre")
+    music_key = data.get("music", "mystery")
+
+    if not text or len(text) < 50:
+        return jsonify({"error": "Escribe la historia completa (mínimo ~50 caracteres)."}), 400
+    if not keywords:
+        return jsonify({"error": "Agrega al menos 1 palabra clave para el fondo (lo ideal son 2-4)."}), 400
+
+    voice = VOICES.get(voice_key, VOICE_ES_MEXICO)
+
+    job_id = str(uuid.uuid4())[:8]
+    JOBS[job_id] = {"status": "processing"}
+
+    thread = threading.Thread(target=_run_story_job, args=(job_id, text, keywords, voice, music_key), daemon=True)
+    thread.start()
+
+    return jsonify({"ok": True, "job_id": job_id})
 
 
 @app.route("/download/<filename>")

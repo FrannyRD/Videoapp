@@ -134,6 +134,50 @@ def concat_clips(clip_paths: list, output_path: str):
     return output_path
 
 
+def build_looped_background(clip_paths: list, target_duration: float, output_path: str, transition: float = 0.5):
+    """
+    Para historias largas (storytime): repite una lista corta de clips de ambiente
+    (ya normalizados y con zoom aplicado) las veces que haga falta, con transición
+    entre cada uno, hasta cubrir target_duration. Al final recorta al segundo exacto.
+    """
+    if not clip_paths:
+        raise ValueError("Se necesita al menos un clip de fondo")
+
+    # Duración real de cada clip (puede variar levemente entre ellos)
+    clip_durations = [get_duration(p) for p in clip_paths]
+    avg_step = sum(clip_durations) / len(clip_durations) - transition  # aporte neto por clip tras el fundido
+
+    # Cuántas repeticiones del set de clips hacen falta para cubrir target_duration + margen
+    needed_total = target_duration + transition * 2
+    sequence = []
+    seq_duration = 0.0
+    i = 0
+    while seq_duration < needed_total:
+        path = clip_paths[i % len(clip_paths)]
+        sequence.append(path)
+        seq_duration += clip_durations[i % len(clip_paths)]
+        if len(sequence) > 1:
+            seq_duration -= transition
+        i += 1
+        if len(sequence) > 200:  # salvaguarda, no debería pasar nunca
+            break
+
+    raw_output = output_path + ".raw.mp4"
+    concat_clips_with_transitions(sequence, raw_output, transition=transition)
+
+    # Recortar al segundo exacto que necesitamos
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", raw_output,
+        "-t", str(target_duration),
+        "-c", "copy",
+        output_path,
+    ]
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    os.remove(raw_output)
+    return output_path
+
+
 def concat_clips_with_transitions(clip_paths: list, output_path: str, transition: float = 0.5):
     """
     Concatena clips con un crossfade (fundido) suave entre cada uno.
@@ -179,6 +223,29 @@ def concat_clips_with_transitions(clip_paths: list, output_path: str, transition
         current = step_output
         is_temp_current = not is_last
 
+    return output_path
+
+
+def burn_captions(input_video: str, ass_path: str, output_path: str):
+    """
+    Quema (incrusta) los subtítulos del archivo .ass en el video.
+    Se hace como ÚLTIMO paso, sobre el video ya en resolución final,
+    para que el texto salga nítido (no escalado/borroso).
+    """
+    # ffmpeg necesita la ruta del archivo .ass escapada de cierta forma dentro del filtro
+    safe_ass_path = ass_path.replace("\\", "/").replace(":", "\\:")
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_video,
+        "-vf", f"subtitles={safe_ass_path}",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-threads", "1",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        output_path,
+    ]
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
     return output_path
 
 

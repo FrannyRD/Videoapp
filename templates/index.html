@@ -37,35 +37,80 @@
     <div id="ideas"></div>
   </details>
 
-  <h2>Tu guion</h2>
-  <div id="scenes"></div>
-
-  <button onclick="addScene()">+ Agregar escena</button>
-
-  <div class="scene" style="margin-top:20px;">
-    <label>Voz</label>
-    <select id="voice">
-      <option value="mexico_hombre">Español México (Hombre)</option>
-      <option value="espana_hombre">Español España (Hombre)</option>
-      <option value="espana_mujer">Español España (Mujer)</option>
-    </select>
+  <div class="scene" style="display:flex; gap:10px;">
+    <button type="button" id="tabScenesBtn" onclick="showTab('scenes')" style="flex:1;">📋 Escenas cortas</button>
+    <button type="button" id="tabStoryBtn" onclick="showTab('story')" style="flex:1; background:#333;">📖 Historia larga</button>
   </div>
 
-  <div class="scene">
-    <label>Música de fondo</label>
-    <select id="music">
-      <option value="mystery">Misterio (recomendado para Enigma Diario)</option>
-      <option value="suspense">Suspenso</option>
-      <option value="epic">Épica</option>
-      <option value="none">Sin música</option>
-    </select>
+  <div id="tabScenesPanel">
+    <h2>Tu guion</h2>
+    <div id="scenes"></div>
+
+    <button onclick="addScene()">+ Agregar escena</button>
+
+    <div class="scene" style="margin-top:20px;">
+      <label>Voz</label>
+      <select id="voice">
+        <option value="mexico_hombre">Español México (Hombre)</option>
+        <option value="espana_hombre">Español España (Hombre)</option>
+        <option value="espana_mujer">Español España (Mujer)</option>
+      </select>
+    </div>
+
+    <div class="scene">
+      <label>Música de fondo</label>
+      <select id="music">
+        <option value="mystery">Misterio (recomendado para Enigma Diario)</option>
+        <option value="suspense">Suspenso</option>
+        <option value="epic">Épica</option>
+        <option value="none">Sin música</option>
+      </select>
+    </div>
+
+    <button id="generateBtn" onclick="generateVideo()">🎥 Generar video</button>
   </div>
 
-  <button id="generateBtn" onclick="generateVideo()">🎥 Generar video</button>
+  <div id="tabStoryPanel" style="display:none;">
+    <h2>Historia larga (storytime)</h2>
+    <p style="color:#999; font-size:0.85rem;">Pega la historia completa (2-3 minutos narrados). Los subtítulos se sincronizan automáticamente con la voz, estilo meme. El fondo es un loop de 2-4 clips de ambiente — no necesitan combinar frase por frase.</p>
+    <div class="scene">
+      <label>Historia completa</label>
+      <textarea id="storyText" rows="10" placeholder="En diciembre de 1900, un barco se acercó a una pequeña isla escocesa..."></textarea>
+    </div>
+    <div class="scene">
+      <label>Palabras clave de fondo (inglés, 2-4, separadas por coma)</label>
+      <input type="text" id="storyKeywords" placeholder="lighthouse fog, stormy ocean waves, old door wooden, candle flame dark">
+    </div>
+    <div class="scene">
+      <label>Voz</label>
+      <select id="storyVoice">
+        <option value="mexico_hombre">Español México (Hombre)</option>
+        <option value="espana_hombre">Español España (Hombre)</option>
+        <option value="espana_mujer">Español España (Mujer)</option>
+      </select>
+    </div>
+    <div class="scene">
+      <label>Música de fondo</label>
+      <select id="storyMusic">
+        <option value="mystery">Misterio (recomendado para Enigma Diario)</option>
+        <option value="suspense">Suspenso</option>
+        <option value="epic">Épica</option>
+        <option value="none">Sin música</option>
+      </select>
+    </div>
+    <button id="generateStoryBtn" onclick="generateStoryVideo()">🎥 Generar historia</button>
+  </div>
 
   <div id="status"></div>
 
   <script>
+    function showTab(tab) {
+      document.getElementById("tabScenesPanel").style.display = tab === "scenes" ? "block" : "none";
+      document.getElementById("tabStoryPanel").style.display = tab === "story" ? "block" : "none";
+      document.getElementById("tabScenesBtn").style.background = tab === "scenes" ? "#4f46e5" : "#333";
+      document.getElementById("tabStoryBtn").style.background = tab === "story" ? "#4f46e5" : "#333";
+    }
+
     let sceneCount = 0;
 
     // ---------- Banco de ideas de contenido ----------
@@ -270,8 +315,56 @@
       }
     }
 
+    async function generateStoryVideo() {
+      const text = document.getElementById("storyText").value.trim();
+      const keywordsRaw = document.getElementById("storyKeywords").value.trim();
+      const keywords = keywordsRaw.split(",").map(k => k.trim()).filter(k => k);
+      const voice = document.getElementById("storyVoice").value;
+      const music = document.getElementById("storyMusic").value;
+      const statusEl = document.getElementById("status");
+      const btn = document.getElementById("generateStoryBtn");
+
+      if (text.length < 50) {
+        statusEl.className = "error";
+        statusEl.innerText = "Escribe la historia completa (mínimo ~50 caracteres).";
+        return;
+      }
+      if (keywords.length === 0) {
+        statusEl.className = "error";
+        statusEl.innerText = "Agrega al menos 1 palabra clave de fondo (lo ideal son 2-4).";
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.className = "";
+      statusEl.innerHTML = `⏳ Enviando... <div class="progress-wrap"><div class="progress-bar" id="bar" style="width:0%"></div></div>`;
+
+      try {
+        const resp = await fetch("/api/generate_story", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, keywords, voice, music })
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+          statusEl.className = "error";
+          statusEl.innerText = "❌ Error: " + data.error;
+          btn.disabled = false;
+          return;
+        }
+
+        pollStatus(data.job_id, statusEl, btn);
+
+      } catch (err) {
+        statusEl.className = "error";
+        statusEl.innerText = "❌ Error de conexión: " + err.message;
+        btn.disabled = false;
+      }
+    }
+
     async function pollStatus(jobId, statusEl, btn) {
-      const maxAttempts = 90; // ~7.5 minutos máximo
+      const maxAttempts = 300; // ~20 minutos máximo (guiones largos de 8 escenas tardan más)
       let attempts = 0;
 
       const interval = setInterval(async () => {
@@ -293,7 +386,7 @@
           } else if (attempts >= maxAttempts) {
             clearInterval(interval);
             statusEl.className = "error";
-            statusEl.innerText = "⏱️ Está tardando demasiado. Revisa los logs en Render.";
+            statusEl.innerHTML = `⏱️ Está tardando más de lo esperado, pero puede seguir trabajando en el servidor.<br>Revisa en unos minutos: <a href="/api/status/${jobId}" target="_blank">/api/status/${jobId}</a>`;
             btn.disabled = false;
           } else {
             const pct = data.progress_pct || 0;

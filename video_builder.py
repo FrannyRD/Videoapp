@@ -223,7 +223,31 @@ def concat_clips_with_transitions(clip_paths: list, output_path: str, transition
     return output_path
 
 
-def burn_captions(input_video: str, ass_path: str, output_path: str):
+def upscale_and_burn_captions(input_path: str, ass_path: str, output_path: str,
+                               width: int = FINAL_W, height: int = FINAL_H, timeout: int = 600):
+    """
+    Hace en UNA sola pasada lo que antes eran dos pasos separados (agrandar resolución
+    + quemar subtítulos). Esto es clave en servidores con poco CPU (plan gratis de
+    Render): cada pasada completa de video es costosa, así que combinar dos en una
+    reduce a la mitad el tiempo total de esta parte del proceso.
+    """
+    safe_ass_path = ass_path.replace("\\", "/").replace(":", "\\:")
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-vf", f"scale={width}:{height},subtitles={safe_ass_path}",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-threads", "1",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        output_path,
+    ]
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
+    return output_path
+
+
+def burn_captions(input_video: str, ass_path: str, output_path: str, timeout: int = 600):
     """
     Quema (incrusta) los subtítulos del archivo .ass en el video.
     Se hace como ÚLTIMO paso, sobre el video ya en resolución final,
@@ -242,11 +266,11 @@ def burn_captions(input_video: str, ass_path: str, output_path: str):
         "-c:a", "copy",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
     return output_path
 
 
-def upscale_to_final(input_path: str, output_path: str, width: int = FINAL_W, height: int = FINAL_H):
+def upscale_to_final(input_path: str, output_path: str, width: int = FINAL_W, height: int = FINAL_H, timeout: int = 600):
     """
     Escala el video final (ya con voz y música mezcladas) a la resolución de entrega.
     Es un paso liviano: un solo stream, sin transiciones ni texto que recalcular,
@@ -263,7 +287,7 @@ def upscale_to_final(input_path: str, output_path: str, width: int = FINAL_W, he
         "-c:a", "copy",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
     return output_path
 
 

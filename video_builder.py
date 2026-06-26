@@ -137,33 +137,30 @@ def concat_clips(clip_paths: list, output_path: str):
 def build_looped_background(clip_paths: list, target_duration: float, output_path: str, transition: float = 0.5):
     """
     Para historias largas (storytime): repite una lista corta de clips de ambiente
-    (ya normalizados y con zoom aplicado) las veces que haga falta, con transición
-    entre cada uno, hasta cubrir target_duration. Al final recorta al segundo exacto.
+    hasta cubrir target_duration, usando CORTES DIRECTOS (sin fundido) entre cada
+    repetición. Esto es intencional: las transiciones con xfade son demasiado lentas
+    para CPUs débiles (como el plan gratis de Render) cuando hay que repetir muchas
+    veces para cubrir 2-3 minutos — un corte directo es casi instantáneo porque copia
+    los datos sin volver a codificar el video.
     """
     if not clip_paths:
         raise ValueError("Se necesita al menos un clip de fondo")
 
-    # Duración real de cada clip (puede variar levemente entre ellos)
     clip_durations = [get_duration(p) for p in clip_paths]
-    avg_step = sum(clip_durations) / len(clip_durations) - transition  # aporte neto por clip tras el fundido
-
-    # Cuántas repeticiones del set de clips hacen falta para cubrir target_duration + margen
-    needed_total = target_duration + transition * 2
+    needed_total = target_duration + 1.0  # pequeño margen
     sequence = []
     seq_duration = 0.0
     i = 0
     while seq_duration < needed_total:
-        path = clip_paths[i % len(clip_paths)]
-        sequence.append(path)
-        seq_duration += clip_durations[i % len(clip_paths)]
-        if len(sequence) > 1:
-            seq_duration -= transition
+        idx = i % len(clip_paths)
+        sequence.append(clip_paths[idx])
+        seq_duration += clip_durations[idx]
         i += 1
         if len(sequence) > 200:  # salvaguarda, no debería pasar nunca
             break
 
     raw_output = output_path + ".raw.mp4"
-    concat_clips_with_transitions(sequence, raw_output, transition=transition)
+    concat_clips(sequence, raw_output)  # corte directo, sin transición (rápido)
 
     # Recortar al segundo exacto que necesitamos
     cmd = [

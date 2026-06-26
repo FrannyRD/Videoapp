@@ -162,7 +162,7 @@ def generate_story_video(text: str, background_keywords: list, music_key: str = 
                     f"Prueba con otra palabra clave más genérica."
                 )
             norm_path = os.path.join(job_dir, f"bg_norm_{i}.mp4")
-            vb.normalize_clip(raw_path, norm_path, duration=8.0, text=None)
+            vb.normalize_clip(raw_path, norm_path, duration=8.0, text=None, zoom=False)
             os.remove(raw_path)
             bg_clip_paths.append(norm_path)
 

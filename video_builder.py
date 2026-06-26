@@ -23,7 +23,7 @@ def get_duration(filepath: str) -> float:
         "-show_entries", "format=duration",
         "-of", "json", filepath,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     data = json.loads(result.stdout)
     return float(data["format"]["duration"])
 
@@ -111,7 +111,7 @@ def normalize_clip(input_path: str, output_path: str, duration: float, text: str
         "-an",  # sin audio del clip original (usaremos la voz aparte)
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     return output_path
 
 
@@ -129,7 +129,7 @@ def concat_clips(clip_paths: list, output_path: str):
         "-c", "copy",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     os.remove(list_file)
     return output_path
 
@@ -173,7 +173,7 @@ def build_looped_background(clip_paths: list, target_duration: float, output_pat
         "-c", "copy",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     os.remove(raw_output)
     return output_path
 
@@ -215,7 +215,7 @@ def concat_clips_with_transitions(clip_paths: list, output_path: str, transition
             "-pix_fmt", "yuv420p",
             step_output,
         ]
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
 
         if is_temp_current:
             os.remove(current)
@@ -245,7 +245,7 @@ def burn_captions(input_video: str, ass_path: str, output_path: str):
         "-c:a", "copy",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     return output_path
 
 
@@ -266,7 +266,7 @@ def upscale_to_final(input_path: str, output_path: str, width: int = FINAL_W, he
         "-c:a", "copy",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     return output_path
 
 
@@ -284,7 +284,7 @@ def concat_audio(audio_paths: list, output_path: str):
         "-c:a", "aac",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     os.remove(list_file)
     return output_path
 
@@ -327,5 +327,5 @@ def merge_video_audio_music(video_path: str, voice_path: str, music_path: str,
         cmd += ["-t", str(target_duration)]
     cmd.append(output_path)
 
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=180)
     return output_path

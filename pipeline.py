@@ -182,16 +182,12 @@ def generate_story_video(text: str, background_keywords: list, music_key: str = 
         vb.merge_video_audio_music(bg_full_path, voice_path, music_path, merged_path,
                                     music_volume=0.15, target_duration=total_duration)
 
-        # 7. Upscale a resolución final
-        report("Ajustando a resolución final...", 90)
-        upscaled_path = os.path.join(job_dir, "upscaled.mp4")
-        vb.upscale_to_final(merged_path, upscaled_path)
-
-        # 8. Quemar los subtítulos como último paso (sobre la resolución final, nítidos)
-        report("Incrustando subtítulos...", 96)
+        # 7-8. Agrandar a resolución final Y quemar subtítulos EN UNA SOLA PASADA
+        # (combinar estos dos pasos reduce a la mitad el tiempo de CPU en servidores lentos)
+        report("Generando archivo final con subtítulos...", 88)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         final_path = os.path.join(OUTPUT_DIR, f"story_{job_id}.mp4")
-        vb.burn_captions(upscaled_path, ass_path, final_path)
+        vb.upscale_and_burn_captions(merged_path, ass_path, final_path)
 
         report("¡Video listo!", 100)
         return final_path

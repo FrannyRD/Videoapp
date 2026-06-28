@@ -10,6 +10,9 @@ from flask import Flask, request, render_template, send_from_directory, jsonify
 
 from pipeline import generate_video, generate_story_video
 from tts_client import VOICE_ES_MEXICO, VOICE_ES_ESPANA_MUJER, VOICE_ES_ESPANA_HOMBRE
+from content_state import get_library_with_status, set_video_ready, reset_page
+from caption_builder import CAPTION_STYLES
+from music_client import MUSIC_LABELS
 
 app = Flask(__name__)
 
@@ -27,14 +30,16 @@ VOICES = {
 JOBS = {}
 
 
-def _run_job(job_id, scenes, voice, music_key):
+def _run_job(job_id, scenes, voice, music_key, page_id="manual", caption_style="meme"):
     try:
         JOBS[job_id] = {"status": "processing", "progress_text": "Iniciando...", "progress_pct": 0}
 
         def on_progress(text, percent):
             JOBS[job_id] = {"status": "processing", "progress_text": text, "progress_pct": percent}
 
-        final_path = generate_video(scenes, music_key=music_key, voice=voice, job_id=job_id, on_progress=on_progress)
+        final_path = generate_video(scenes, music_key=music_key, voice=voice, job_id=job_id,
+                                    on_progress=on_progress, page_id=page_id,
+                                    caption_style=caption_style)
         filename = os.path.basename(final_path)
         JOBS[job_id] = {"status": "done", "download_url": f"/download/{filename}"}
     except Exception as e:
@@ -42,7 +47,7 @@ def _run_job(job_id, scenes, voice, music_key):
         JOBS[job_id] = {"status": "error", "error": str(e)}
 
 
-def _run_story_job(job_id, text, keywords, voice, music_key):
+def _run_story_job(job_id, text, keywords, voice, music_key, page_id="manual", caption_style="meme"):
     try:
         JOBS[job_id] = {"status": "processing", "progress_text": "Iniciando...", "progress_pct": 0}
 
@@ -50,7 +55,8 @@ def _run_story_job(job_id, text, keywords, voice, music_key):
             JOBS[job_id] = {"status": "processing", "progress_text": text_, "progress_pct": percent}
 
         final_path = generate_story_video(text, keywords, music_key=music_key, voice=voice,
-                                           job_id=job_id, on_progress=on_progress)
+                                           job_id=job_id, on_progress=on_progress,
+                                           page_id=page_id, caption_style=caption_style)
         filename = os.path.basename(final_path)
         JOBS[job_id] = {"status": "done", "download_url": f"/download/{filename}"}
     except Exception as e:
@@ -61,6 +67,35 @@ def _run_story_job(job_id, text, keywords, voice, music_key):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/api/content")
+def api_content():
+    return jsonify({
+        "ok": True,
+        "library": get_library_with_status(),
+        "caption_styles": {k: v.get("label", k) for k, v in CAPTION_STYLES.items()},
+        "music_labels": MUSIC_LABELS,
+    })
+
+
+@app.route("/api/mark_ready", methods=["POST"])
+def api_mark_ready():
+    data = request.get_json(force=True)
+    video_id = (data.get("video_id") or "").strip()
+    ready = bool(data.get("ready"))
+    if not video_id:
+        return jsonify({"error": "Falta video_id."}), 400
+    return jsonify(set_video_ready(video_id, ready))
+
+
+@app.route("/api/reset_page", methods=["POST"])
+def api_reset_page():
+    data = request.get_json(force=True)
+    page_id = (data.get("page_id") or "").strip()
+    if not page_id:
+        return jsonify({"error": "Falta page_id."}), 400
+    return jsonify(reset_page(page_id))
 
 
 @app.route("/api/generate", methods=["POST"])
@@ -77,6 +112,8 @@ def api_generate():
     scenes = data.get("scenes", [])
     voice_key = data.get("voice", "mexico_hombre")
     music_key = data.get("music", "mystery")
+    page_id = data.get("page_id", "manual")
+    caption_style = data.get("caption_style", "meme")
 
     if not scenes or len(scenes) == 0:
         return jsonify({"error": "Debes agregar al menos una escena (texto + palabra clave)."}), 400
@@ -90,7 +127,7 @@ def api_generate():
     job_id = str(uuid.uuid4())[:8]
     JOBS[job_id] = {"status": "processing"}
 
-    thread = threading.Thread(target=_run_job, args=(job_id, scenes, voice, music_key), daemon=True)
+    thread = threading.Thread(target=_run_job, args=(job_id, scenes, voice, music_key, page_id, caption_style), daemon=True)
     thread.start()
 
     return jsonify({"ok": True, "job_id": job_id})
@@ -120,6 +157,8 @@ def api_generate_story():
     keywords = [k.strip() for k in data.get("keywords", []) if k.strip()]
     voice_key = data.get("voice", "mexico_hombre")
     music_key = data.get("music", "mystery")
+    page_id = data.get("page_id", "manual")
+    caption_style = data.get("caption_style", "meme")
 
     if not text or len(text) < 50:
         return jsonify({"error": "Escribe la historia completa (mínimo ~50 caracteres)."}), 400
@@ -131,7 +170,7 @@ def api_generate_story():
     job_id = str(uuid.uuid4())[:8]
     JOBS[job_id] = {"status": "processing"}
 
-    thread = threading.Thread(target=_run_story_job, args=(job_id, text, keywords, voice, music_key), daemon=True)
+    thread = threading.Thread(target=_run_story_job, args=(job_id, text, keywords, voice, music_key, page_id, caption_style), daemon=True)
     thread.start()
 
     return jsonify({"ok": True, "job_id": job_id})

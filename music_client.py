@@ -1,7 +1,6 @@
 """
-Pistas de música de fondo gratis y de dominio público (sin derechos de autor),
-para que la monetización en Facebook/YouTube no tenga problemas de copyright.
-Se descargan una sola vez y se guardan en caché local.
+Pistas de música de fondo gratis/de dominio público. La app permite elegir música por página.
+Si alguna descarga falla, el video se genera igual sin música para no romper el flujo.
 """
 import os
 import requests
@@ -9,20 +8,38 @@ import requests
 MUSIC_DIR = "assets/music"
 os.makedirs(MUSIC_DIR, exist_ok=True)
 
-# Pistas de FreePD.com (licencia PD0 - dominio público, uso libre sin atribución)
+# FreePD.com (PD0 / dominio público). Varias categorías apuntan a pistas distintas o equivalentes.
 MUSIC_TRACKS = {
     "mystery": "https://freepd.com/music/Mysterioso%20March.mp3",
     "suspense": "https://freepd.com/music/Eerie.mp3",
     "epic": "https://freepd.com/music/Epic%20Adventure.mp3",
+    "true_crime": "https://freepd.com/music/Mysterioso%20March.mp3",
+    "psychology": "https://freepd.com/music/Eerie.mp3",
+    "wildlife": "https://freepd.com/music/Epic%20Adventure.mp3",
+    "historical": "https://freepd.com/music/Mysterioso%20March.mp3",
+    "biblical": "https://freepd.com/music/Epic%20Adventure.mp3",
+    "enigma": "https://freepd.com/music/Mysterioso%20March.mp3",
     "none": None,
 }
 
+MUSIC_LABELS = {
+    "mystery": "Misterio general",
+    "suspense": "Suspenso suave",
+    "epic": "Épica documental",
+    "true_crime": "True crime / investigación",
+    "psychology": "Psicología / tensión sutil",
+    "wildlife": "Animal / naturaleza intensa",
+    "historical": "Historia / archivo secreto",
+    "biblical": "Bíblico / épico emocional",
+    "enigma": "Enigma / misterio diario",
+    "none": "Sin música",
+}
 
-def get_music_path(key: str) -> str:
+
+def get_music_path(key: str) -> str | None:
     """
     Devuelve la ruta local de la pista de música, descargándola si es la primera vez.
-    Si key es "none", no existe, o la descarga falla, devuelve None
-    (el video se genera igual, solo que sin música de fondo).
+    Si key es "none", no existe, o la descarga falla, devuelve None.
     """
     url = MUSIC_TRACKS.get(key)
     if not url:
@@ -37,7 +54,8 @@ def get_music_path(key: str) -> str:
         resp.raise_for_status()
         with open(local_path, "wb") as f:
             for chunk in resp.iter_content(chunk_size=8192):
-                f.write(chunk)
+                if chunk:
+                    f.write(chunk)
         if os.path.getsize(local_path) == 0:
             raise RuntimeError("Archivo de música vacío")
         return local_path

@@ -2,6 +2,7 @@
 Generación de voz en off usando edge-tts (gratis, voces de Microsoft Edge).
 """
 import asyncio
+import os
 import edge_tts
 
 # Voces en español disponibles (puedes cambiar según prefieras)
@@ -10,7 +11,7 @@ VOICE_ES_ESPANA_MUJER = "es-ES-ElviraNeural"
 VOICE_ES_ESPANA_HOMBRE = "es-ES-AlvaroNeural"
 
 DEFAULT_VOICE = VOICE_ES_MEXICO
-TTS_TIMEOUT_SECONDS = 30
+TTS_TIMEOUT_SECONDS = int(os.environ.get("TTS_TIMEOUT_SECONDS", "180"))
 
 
 async def _generate(text: str, output_path: str, voice: str = DEFAULT_VOICE, rate: str = "+0%"):
@@ -68,7 +69,7 @@ def generate_voice(text: str, output_path: str, voice: str = DEFAULT_VOICE, rate
         asyncio.run(_generate(text, output_path, voice, rate))
     except asyncio.TimeoutError:
         raise RuntimeError(
-            "El servicio de voz (Edge-TTS) no respondió a tiempo (30s). "
+            f"El servicio de voz (Edge-TTS) no respondió a tiempo ({TTS_TIMEOUT_SECONDS}s). "
             "Puede ser un problema temporal del servicio — intenta generar el video de nuevo."
         )
     return output_path
@@ -88,7 +89,7 @@ def generate_voice_with_words(text: str, output_path: str, voice: str = DEFAULT_
         words = asyncio.run(_generate_with_words(text, output_path, voice, rate))
     except asyncio.TimeoutError:
         raise RuntimeError(
-            "El servicio de voz (Edge-TTS) no respondió a tiempo (30s). "
+            f"El servicio de voz (Edge-TTS) no respondió a tiempo ({TTS_TIMEOUT_SECONDS}s). "
             "Puede ser un problema temporal del servicio — intenta generar el video de nuevo."
         )
 

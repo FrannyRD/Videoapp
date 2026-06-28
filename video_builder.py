@@ -15,6 +15,14 @@ import json
 WORK_W, WORK_H = 720, 1280      # resolución de trabajo (bajo consumo de memoria)
 FINAL_W, FINAL_H = 1080, 1920   # resolución final de entrega
 
+TEXT_OVERLAY_STYLES = {
+    "meme": {"fontsize": 52, "fontcolor": "white", "boxcolor": "black@0.55", "box": 1, "y_offset": 450, "max_chars": 18},
+    "cinematic": {"fontsize": 46, "fontcolor": "white", "boxcolor": "black@0.35", "box": 1, "y_offset": 420, "max_chars": 24},
+    "clean": {"fontsize": 44, "fontcolor": "white", "boxcolor": "black@0.45", "box": 1, "y_offset": 390, "max_chars": 25},
+    "yellow": {"fontsize": 54, "fontcolor": "yellow", "boxcolor": "black@0.55", "box": 1, "y_offset": 430, "max_chars": 18},
+    "minimal": {"fontsize": 38, "fontcolor": "white", "boxcolor": "black@0.30", "box": 1, "y_offset": 350, "max_chars": 28},
+}
+
 
 def get_duration(filepath: str) -> float:
     """Obtiene la duración en segundos de un archivo de audio/video con ffprobe."""
@@ -59,7 +67,7 @@ def _wrap_text(text: str, max_chars_per_line: int = 18) -> list:
 
 def normalize_clip(input_path: str, output_path: str, duration: float, text: str = None,
                     font_path: str = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                    zoom: bool = True, fps: int = 30):
+                    zoom: bool = True, fps: int = 30, text_style: str = "meme"):
     """
     Recorta/ajusta un clip a la resolución de TRABAJO (más liviana en memoria),
     a la duración exacta requerida, le agrega un zoom lento (efecto "Ken Burns")
@@ -80,18 +88,20 @@ def normalize_clip(input_path: str, output_path: str, duration: float, text: str
         )
 
     if text:
-        lines = _wrap_text(text, max_chars_per_line=18)
+        style = TEXT_OVERLAY_STYLES.get(text_style) or TEXT_OVERLAY_STYLES["meme"]
+        lines = _wrap_text(text, max_chars_per_line=style.get("max_chars", 18))
         safe_lines = [_escape_text_for_ffmpeg(line) for line in lines]
         safe_text = "\n".join(safe_lines)
         # Tamaños proporcionales a la resolución de trabajo (escalados desde el diseño original a 1080 de ancho)
         scale_factor = WORK_W / 1080
-        fontsize = round(52 * scale_factor)
-        y_offset = round(450 * scale_factor)
+        fontsize = round(style.get("fontsize", 52) * scale_factor)
+        y_offset = round(style.get("y_offset", 450) * scale_factor)
         boxborder = round(20 * scale_factor)
         line_spacing = round(14 * scale_factor)
         drawtext = (
             f"drawtext=fontfile={font_path}:expansion=none:text='{safe_text}':"
-            f"fontcolor=white:fontsize={fontsize}:box=1:boxcolor=black@0.55:boxborderw={boxborder}:"
+            f"fontcolor={style.get('fontcolor', 'white')}:fontsize={fontsize}:box={style.get('box', 1)}:"
+            f"boxcolor={style.get('boxcolor', 'black@0.55')}:boxborderw={boxborder}:"
             f"x=(w-text_w)/2:y=h-{y_offset}:line_spacing={line_spacing}"
         )
         vf_filters.append(drawtext)  # se agrega DESPUÉS del zoom, para que el texto quede fijo y nítido

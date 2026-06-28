@@ -18,10 +18,11 @@ TRANSITION_SECONDS = 0.5  # duración del fundido entre escenas
 
 
 def generate_video(scenes: list, music_key: str = "mystery", voice: str = None,
-                    job_id: str = None, on_progress=None) -> str:
+                    job_id: str = None, on_progress=None, page_id: str = "manual",
+                    caption_style: str = "meme") -> str:
     """
     scenes: lista de dicts [{"text": "...", "keyword": "..."}, ...]
-    music_key: "mystery" | "suspense" | "epic" | "none"
+    music_key: "mystery" | "suspense" | "epic" | "none" | opciones por página
     on_progress: función opcional callback(text, percent) para reportar avance en vivo.
     Devuelve la ruta del .mp4 final.
     """
@@ -37,6 +38,7 @@ def generate_video(scenes: list, music_key: str = "mystery", voice: str = None,
     try:
         scene_clip_paths = []
         scene_voice_paths = []
+        blocked_clip_ids = set()
         n_scenes = len(scenes)
         # Repartimos el 0-80% entre las escenas, dejamos 80-100% para el ensamblaje final
         pct_per_scene = 80 / max(n_scenes, 1)
@@ -61,7 +63,8 @@ def generate_video(scenes: list, music_key: str = "mystery", voice: str = None,
 
             # 2. Buscar y descargar el clip de video para esa escena
             raw_clip_path = os.path.join(job_dir, f"raw_{i}.mp4")
-            found = fetch_clip_for_keyword(keyword, raw_clip_path, min_duration=int(clip_duration) + 1)
+            found = fetch_clip_for_keyword(keyword, raw_clip_path, min_duration=int(clip_duration) + 1,
+                                           usage_scope=page_id, blocked_ids=blocked_clip_ids)
             if not found:
                 raise RuntimeError(
                     f"No se encontró ningún video en Pexels para la palabra clave: '{keyword}'. "
@@ -71,7 +74,8 @@ def generate_video(scenes: list, music_key: str = "mystery", voice: str = None,
 
             # 3. Normalizar el clip (recortar a 1080x1920, duración exacta, texto incrustado)
             scene_path = os.path.join(job_dir, f"scene_{i}.mp4")
-            vb.normalize_clip(raw_clip_path, scene_path, duration=clip_duration, text=text)
+            vb.normalize_clip(raw_clip_path, scene_path, duration=clip_duration, text=text,
+                              text_style=caption_style)
             os.remove(raw_clip_path)  # liberar espacio/memoria, ya no se necesita
 
             scene_clip_paths.append(scene_path)
@@ -116,7 +120,8 @@ def generate_video(scenes: list, music_key: str = "mystery", voice: str = None,
 
 
 def generate_story_video(text: str, background_keywords: list, music_key: str = "mystery",
-                          voice: str = None, job_id: str = None, on_progress=None) -> str:
+                          voice: str = None, job_id: str = None, on_progress=None,
+                          page_id: str = "manual", caption_style: str = "meme") -> str:
     """
     Genera un video de "historia larga" (storytime): una sola narración de 2+ minutos,
     con subtítulos estilo meme sincronizados palabra por palabra, sobre un fondo de
@@ -146,23 +151,26 @@ def generate_story_video(text: str, background_keywords: list, music_key: str = 
         report("Armando subtítulos...", 15)
         chunks = group_words_into_chunks(words, max_words=4, max_chars=26)
         ass_path = os.path.join(job_dir, "captions.ass")
-        build_ass(chunks, ass_path, width=vb.FINAL_W, height=vb.FINAL_H, fontsize=80)
+        build_ass(chunks, ass_path, width=vb.FINAL_W, height=vb.FINAL_H, style_key=caption_style)
 
         # 3. Descargar 2-4 clips de fondo (ambiente, no tienen que combinar frase por frase)
         n_bg = len(background_keywords)
         bg_clip_paths = []
+        blocked_clip_ids = set()
         for i, keyword in enumerate(background_keywords):
             pct = 15 + int((i / max(n_bg, 1)) * 40)
             report(f"Descargando fondo {i+1}/{n_bg} ('{keyword}')...", pct)
             raw_path = os.path.join(job_dir, f"bg_raw_{i}.mp4")
-            found = fetch_clip_for_keyword(keyword, raw_path, min_duration=6)
+            found = fetch_clip_for_keyword(keyword, raw_path, min_duration=6,
+                                           usage_scope=page_id, blocked_ids=blocked_clip_ids)
             if not found:
                 raise RuntimeError(
                     f"No se encontró ningún video en Pexels para la palabra clave: '{keyword}'. "
                     f"Prueba con otra palabra clave más genérica."
                 )
             norm_path = os.path.join(job_dir, f"bg_norm_{i}.mp4")
-            vb.normalize_clip(raw_path, norm_path, duration=8.0, text=None, zoom=False)
+            vb.normalize_clip(raw_path, norm_path, duration=8.0, text=None, zoom=False,
+                              text_style=caption_style)
             os.remove(raw_path)
             bg_clip_paths.append(norm_path)
 

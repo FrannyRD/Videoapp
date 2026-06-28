@@ -3,100 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Generador de Videos - Enigma Diario</title>
+<title>Generador de Videos — Páginas Facebook</title>
 <style>
-  body { font-family: -apple-system, Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; background: #0d0d1a; color: #eee; }
-  h1 { font-size: 1.4rem; }
-  h2 { font-size: 1.1rem; margin-top: 28px; color: #ccc; }
-  .scene { background: #1a1a2e; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-  textarea, select, input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #111; color: #eee; }
-  label { font-size: 0.85rem; color: #aaa; }
-  button { background: #4f46e5; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: 10px; }
-  button:disabled { background: #555; }
-  #removeBtns button { background: #b91c1c; padding: 4px 10px; font-size: 0.8rem; }
+  :root { --bg:#0d0d1a; --panel:#1a1a2e; --panel2:#16213e; --line:#2c3e64; --text:#eee; --muted:#9aa5c4; --accent:#4f46e5; --ok:#22c55e; --danger:#b91c1c; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; max-width: 980px; margin: 24px auto; padding: 0 16px; background: var(--bg); color: var(--text); }
+  h1 { font-size: 1.55rem; margin-bottom: 4px; }
+  h2 { font-size: 1.05rem; margin-top: 28px; color: #ddd; }
+  h3 { margin: 0 0 5px 0; }
+  p { line-height: 1.45; }
+  .muted { color: var(--muted); font-size: 0.88rem; }
+  .grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  .scene, .panel { background: var(--panel); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.04); }
+  textarea, select, input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 9px; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee; }
+  label { font-size: 0.84rem; color: #aaa; }
+  button { background: var(--accent); color: white; border: none; padding: 11px 16px; border-radius: 9px; font-size: 0.95rem; cursor: pointer; margin-top: 10px; }
+  button:disabled { background: #555; cursor:not-allowed; }
+  button.secondary { background:#333a55; }
+  button.good { background:#15803d; }
+  button.danger { background: var(--danger); }
+  button.small { padding: 7px 10px; font-size: 0.78rem; }
+  #removeBtns button { background: var(--danger); padding: 5px 10px; font-size: 0.8rem; }
   #status { margin-top: 16px; padding: 10px; border-radius: 8px; }
   .error { background: #4a1414; color: #ffb4b4; }
   .success { background: #14361f; color: #b6f0c5; }
   #downloadLink { display: inline-block; margin-top: 10px; color: #93c5fd; }
   .progress-wrap { background: #222; border-radius: 8px; height: 18px; margin-top: 8px; overflow: hidden; }
-  .progress-bar { background: #4f46e5; height: 100%; width: 0%; transition: width 0.4s ease; }
-  .idea-card { background: #16213e; border: 1px solid #2c3e64; border-radius: 10px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
-  .idea-card:hover { background: #1c2a4d; }
-  .idea-card h3 { margin: 0 0 4px 0; font-size: 1rem; }
-  .idea-card p { margin: 0; font-size: 0.82rem; color: #9aa5c4; }
-  .tag { display:inline-block; background:#2c3e64; color:#bcd; font-size:0.7rem; padding:2px 8px; border-radius:12px; margin-top:6px; }
-  details summary { cursor: pointer; color: #93c5fd; font-size: 0.9rem; margin: 14px 0; }
+  .progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.4s ease; }
+  .page-card, .video-card { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
+  .page-card:hover, .video-card:hover { background:#1c2a4d; }
+  .page-card.active, .video-card.active { border-color:#93c5fd; box-shadow: 0 0 0 1px rgba(147,197,253,0.3) inset; }
+  .page-card.done { border-color: rgba(34,197,94,0.7); }
+  .video-card.ready { opacity:0.68; border-color: rgba(34,197,94,0.6); }
+  .video-card .title { font-weight:700; margin-bottom:4px; }
+  .pill { display:inline-block; background:#2c3e64; color:#dbeafe; font-size:0.72rem; padding:3px 8px; border-radius:14px; margin: 3px 4px 0 0; }
+  .pill.ready { background:#14532d; color:#bbf7d0; }
+  .pill.next { background:#7c2d12; color:#fed7aa; }
+  .day-title { margin: 16px 0 8px; color:#bfdbfe; font-weight:800; }
+  .check-row { display:flex; align-items:center; gap:8px; margin-top:8px; color:#b6f0c5; font-size:0.86rem; }
+  .check-row input { width:auto; margin:0; transform: scale(1.15); }
+  .tabs { display:flex; gap:10px; }
+  .tabs button { flex:1; }
+  .copybox { background:#0f172a; border:1px solid #26324f; border-radius:10px; padding:10px; white-space:pre-wrap; color:#dbeafe; font-size:0.86rem; }
+  .options-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+  @media (max-width: 720px) { .options-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-  <h1>Generador de Reels — Enigma Diario</h1>
+  <h1>Generador de Reels — Páginas Facebook</h1>
+  <p class="muted">Contenido separado por página, checklist de avance, subtítulos por estilo y música recomendada por nicho. El generador manual original sigue disponible abajo.</p>
 
-  <details>
-    <summary>💡 Ideas de contenido listas para usar (click para ver)</summary>
-    <p style="color:#999; font-size:0.85rem;">Toca cualquier idea para cargar el guion completo automáticamente abajo. Son las 7 ideas pensadas para tu nicho de misterios y curiosidades.</p>
-    <div id="ideas"></div>
-  </details>
+  <div class="grid">
+    <aside>
+      <div class="panel">
+        <label>Selecciona una página</label>
+        <div id="pagesList" style="margin-top:10px;"></div>
+        <button class="secondary small" onclick="loadNextPending()">▶️ Cargar siguiente pendiente</button>
+        <button class="danger small" onclick="resetSelectedPage()">Reiniciar checks de esta página</button>
+      </div>
+    </aside>
 
-  <div class="scene" style="display:flex; gap:10px;">
-    <button type="button" id="tabScenesBtn" onclick="showTab('scenes')" style="flex:1;">📋 Escenas cortas</button>
-    <button type="button" id="tabStoryBtn" onclick="showTab('story')" style="flex:1; background:#333;">📖 Historia larga</button>
+    <main>
+      <div class="panel">
+        <h2 id="pageTitle" style="margin-top:0;">Biblioteca semanal</h2>
+        <p id="pageDescription" class="muted"></p>
+        <div id="videosList"></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="scene tabs">
+    <button type="button" id="tabScenesBtn" onclick="showTab('scenes')">📋 Escenas cortas</button>
+    <button type="button" id="tabStoryBtn" onclick="showTab('story')" class="secondary">📖 Historia larga</button>
+  </div>
+
+  <div id="loadedInfo" class="panel" style="display:none;">
+    <h2 style="margin-top:0;" id="loadedTitle"></h2>
+    <div id="loadedMeta"></div>
+    <p class="muted" id="loadedNotes"></p>
+    <div style="display:grid; grid-template-columns:1fr; gap:10px;">
+      <div>
+        <label>Descripción para Facebook</label>
+        <div id="loadedDescription" class="copybox"></div>
+      </div>
+    </div>
+    <button id="markLoadedBtn" class="good small" onclick="toggleLoadedReady(true)">✅ Marcar este video listo</button>
   </div>
 
   <div id="tabScenesPanel">
-    <h2>Tu guion</h2>
+    <h2>Guion por escenas</h2>
     <div id="scenes"></div>
-
     <button onclick="addScene()">+ Agregar escena</button>
 
     <div class="scene" style="margin-top:20px;">
-      <label>Voz</label>
-      <select id="voice">
-        <option value="mexico_hombre">Español México (Hombre)</option>
-        <option value="espana_hombre">Español España (Hombre)</option>
-        <option value="espana_mujer">Español España (Mujer)</option>
-      </select>
-    </div>
-
-    <div class="scene">
-      <label>Música de fondo</label>
-      <select id="music">
-        <option value="mystery">Misterio (recomendado para Enigma Diario)</option>
-        <option value="suspense">Suspenso</option>
-        <option value="epic">Épica</option>
-        <option value="none">Sin música</option>
-      </select>
+      <div class="options-grid">
+        <div>
+          <label>Voz</label>
+          <select id="voice">
+            <option value="mexico_hombre">Español México (Hombre)</option>
+            <option value="espana_hombre">Español España (Hombre)</option>
+            <option value="espana_mujer">Español España (Mujer)</option>
+          </select>
+        </div>
+        <div>
+          <label>Música de fondo</label>
+          <select id="music"></select>
+        </div>
+        <div>
+          <label>Tipo de subtítulo / texto</label>
+          <select id="captionStyle"></select>
+        </div>
+      </div>
     </div>
 
     <button id="generateBtn" onclick="generateVideo()">🎥 Generar video</button>
   </div>
 
   <div id="tabStoryPanel" style="display:none;">
-    <h2>Historia larga (storytime)</h2>
-    <p style="color:#999; font-size:0.85rem;">Pega la historia completa (2-3 minutos narrados). Los subtítulos se sincronizan automáticamente con la voz, estilo meme. El fondo es un loop de 2-4 clips de ambiente — no necesitan combinar frase por frase.</p>
+    <h2>Historia larga / storytime</h2>
+    <p class="muted">Pega o carga la historia completa. Los subtítulos se sincronizan automáticamente con la voz. El fondo usa varios clips de ambiente y la app intenta no repetir clips ya usados en esa página.</p>
     <div class="scene">
       <label>Historia completa</label>
-      <textarea id="storyText" rows="10" placeholder="En diciembre de 1900, un barco se acercó a una pequeña isla escocesa..."></textarea>
+      <textarea id="storyText" rows="11" placeholder="Pega aquí el guion completo..."></textarea>
     </div>
     <div class="scene">
-      <label>Palabras clave de fondo (inglés, 2-4, separadas por coma)</label>
+      <label>Palabras clave de fondo (inglés, separadas por coma)</label>
       <input type="text" id="storyKeywords" placeholder="lighthouse fog, stormy ocean waves, old door wooden, candle flame dark">
     </div>
     <div class="scene">
-      <label>Voz</label>
-      <select id="storyVoice">
-        <option value="mexico_hombre">Español México (Hombre)</option>
-        <option value="espana_hombre">Español España (Hombre)</option>
-        <option value="espana_mujer">Español España (Mujer)</option>
-      </select>
-    </div>
-    <div class="scene">
-      <label>Música de fondo</label>
-      <select id="storyMusic">
-        <option value="mystery">Misterio (recomendado para Enigma Diario)</option>
-        <option value="suspense">Suspenso</option>
-        <option value="epic">Épica</option>
-        <option value="none">Sin música</option>
-      </select>
+      <div class="options-grid">
+        <div>
+          <label>Voz</label>
+          <select id="storyVoice">
+            <option value="mexico_hombre">Español México (Hombre)</option>
+            <option value="espana_hombre">Español España (Hombre)</option>
+            <option value="espana_mujer">Español España (Mujer)</option>
+          </select>
+        </div>
+        <div>
+          <label>Música de fondo</label>
+          <select id="storyMusic"></select>
+        </div>
+        <div>
+          <label>Tipo de subtítulo</label>
+          <select id="storyCaptionStyle"></select>
+        </div>
+      </div>
     </div>
     <button id="generateStoryBtn" onclick="generateStoryVideo()">🎥 Generar historia</button>
   </div>
@@ -104,147 +156,202 @@
   <div id="status"></div>
 
   <script>
+    let sceneCount = 0;
+    let LIBRARY = null;
+    let SELECTED_PAGE_ID = null;
+    let CURRENT_VIDEO = null;
+
+    function escapeHtml(str = "") {
+      return str.replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
+    }
+
     function showTab(tab) {
       document.getElementById("tabScenesPanel").style.display = tab === "scenes" ? "block" : "none";
       document.getElementById("tabStoryPanel").style.display = tab === "story" ? "block" : "none";
-      document.getElementById("tabScenesBtn").style.background = tab === "scenes" ? "#4f46e5" : "#333";
-      document.getElementById("tabStoryBtn").style.background = tab === "story" ? "#4f46e5" : "#333";
+      document.getElementById("tabScenesBtn").className = tab === "scenes" ? "" : "secondary";
+      document.getElementById("tabStoryBtn").className = tab === "story" ? "" : "secondary";
     }
 
-    let sceneCount = 0;
+    async function loadContent() {
+      const resp = await fetch("/api/content");
+      const data = await resp.json();
+      if (!data.ok) throw new Error("No se pudo cargar la biblioteca");
+      LIBRARY = data.library;
+      fillSelect("music", data.music_labels);
+      fillSelect("storyMusic", data.music_labels);
+      fillSelect("captionStyle", data.caption_styles);
+      fillSelect("storyCaptionStyle", data.caption_styles);
+      SELECTED_PAGE_ID = LIBRARY.pages[0]?.id;
+      renderPages();
+      renderVideos();
+      loadNextPending(false);
+    }
 
-    // ---------- Banco de ideas de contenido ----------
-    const IDEAS = [
-      {
-        title: "El pueblo que desapareció en una noche",
-        tag: "Desaparición sin resolver",
-        scenes: [
-          { text: "En 1930, un pueblo entero desapareció sin dejar rastro", keyword: "abandoned village fog" },
-          { text: "Un barco llegó a hacer su entrega mensual de comida", keyword: "ship approaching coast" },
-          { text: "Encontraron las casas completamente intactas", keyword: "empty house interior" },
-          { text: "La comida seguía caliente sobre las mesas", keyword: "table food abandoned" },
-          { text: "No había señales de lucha, ni sangre, ni desorden", keyword: "empty room silence" },
-          { text: "Los relojes se habían detenido todos a la misma hora", keyword: "old clock stopped" },
-          { text: "Jamás se encontró a ninguno de los habitantes", keyword: "search team forest" },
-          { text: "¿Tú qué crees que pasó esa noche? Coméntalo", keyword: "foggy forest path" }
-        ]
-      },
-      {
-        title: "El objeto que no debería existir",
-        tag: "Objeto imposible",
-        scenes: [
-          { text: "Este objeto fue encontrado dentro de una roca de 300 millones de años", keyword: "rock formation cracked" },
-          { text: "Un minero lo descubrió al partir la piedra con un martillo", keyword: "miner hammer rock" },
-          { text: "Era una pieza de metal, perfectamente fabricada", keyword: "metal mechanism closeup" },
-          { text: "Esa tecnología no debería existir para esa época", keyword: "old gears mechanism" },
-          { text: "Varios científicos lo examinaron sin encontrar explicación", keyword: "scientist examining object" },
-          { text: "Algunos creen que es prueba de civilizaciones antiguas avanzadas", keyword: "ancient ruins mystery" },
-          { text: "Otros dicen que es una simple coincidencia geológica", keyword: "laboratory research desk" },
-          { text: "¿Tecnología antigua o coincidencia? Dime qué piensas", keyword: "mysterious artifact museum" }
-        ]
-      },
-      {
-        title: "La señal que llegó del espacio",
-        tag: "Misterio espacial",
-        scenes: [
-          { text: "En 1977 un telescopio captó una señal de 72 segundos", keyword: "radio telescope night" },
-          { text: "Era tan fuerte que el científico escribió \"Wow\" junto al dato", keyword: "astronomer writing notes" },
-          { text: "Venía de una zona exacta del espacio, sin explicación natural conocida", keyword: "starry sky space" },
-          { text: "Intentaron captarla de nuevo cientos de veces", keyword: "satellite dish array" },
-          { text: "Nunca volvió a repetirse", keyword: "empty night sky" },
-          { text: "Hasta hoy, nadie ha podido explicar su origen", keyword: "scientist looking telescope" },
-          { text: "Algunos la consideran la mejor evidencia de vida extraterrestre jamás registrada", keyword: "deep space stars" },
-          { text: "¿Crees que fue contacto real? Cuéntame tu teoría", keyword: "observatory dome night" }
-        ]
-      },
-      {
-        title: "El experimento que se les salió de control",
-        tag: "Ciencia oscura",
-        scenes: [
-          { text: "En los años 60 un científico quiso saber qué tan obediente puede ser una persona", keyword: "old laboratory vintage" },
-          { text: "Pidió a voluntarios dar \"descargas\" a otra persona si fallaba una prueba", keyword: "man hesitating decision" },
-          { text: "La persona \"castigada\" estaba actuando, pero los voluntarios no lo sabían", keyword: "actor pretending pain" },
-          { text: "La mayoría siguió obedeciendo aunque escuchaban gritos de dolor", keyword: "hands covering face" },
-          { text: "Solo porque una persona con bata blanca les decía que continuaran", keyword: "scientist clipboard authority" },
-          { text: "El experimento reveló algo perturbador sobre la naturaleza humana", keyword: "newspaper headline dramatic" },
-          { text: "Hoy sería imposible repetirlo por sus implicaciones éticas", keyword: "old documents archive" },
-          { text: "¿Tú hubieras seguido las órdenes? Sé honesto en los comentarios", keyword: "empty chair room" }
-        ]
-      },
-      {
-        title: "La ciudad bajo el océano",
-        tag: "Ruinas submarinas",
-        scenes: [
-          { text: "Buzos encontraron estructuras de piedra perfectamente alineadas bajo el mar", keyword: "deep ocean diver" },
-          { text: "Parecían calles, escalones y muros de una civilización antigua", keyword: "underwater ruins stone" },
-          { text: "El problema es que esa zona lleva miles de años bajo el agua", keyword: "ocean floor coral" },
-          { text: "Eso significaría que alguien construyó esto antes de que existiera el mar ahí", keyword: "ancient underwater structure" },
-          { text: "Los arqueólogos siguen divididos sobre su origen real", keyword: "scientist underwater research" },
-          { text: "Algunos creen que es solo una formación natural de roca", keyword: "rock formation ocean" },
-          { text: "Otros insisten en que es una ciudad perdida real", keyword: "sunken ship ocean" },
-          { text: "¿Formación natural o ciudad perdida? Dame tu veredicto", keyword: "deep blue ocean" }
-        ]
-      },
-      {
-        title: "La maldición de la tumba",
-        tag: "Misterio histórico",
-        scenes: [
-          { text: "En 1922 un equipo abrió una tumba sellada hace 3000 años", keyword: "ancient tomb desert" },
-          { text: "Una inscripción en la entrada advertía sobre una maldición", keyword: "ancient hieroglyphs wall" },
-          { text: "Pocas semanas después, el primer hombre que entró murió de forma extraña", keyword: "desert excavation site" },
-          { text: "En los siguientes años, varias personas relacionadas con la tumba también murieron", keyword: "old newspaper archive" },
-          { text: "La prensa de la época habló de \"la maldición del faraón\"", keyword: "vintage newspaper headline" },
-          { text: "Los científicos dicen que fueron solo coincidencias y bacterias antiguas", keyword: "scientist laboratory research" },
-          { text: "Pero la lista de muertes relacionadas sigue siendo inquietante", keyword: "egypt desert ruins" },
-          { text: "¿Maldición real o casualidad? Quiero leer tu opinión", keyword: "ancient egyptian artifact" }
-        ]
-      },
-      {
-        title: "El código que nadie ha podido descifrar",
-        tag: "Misterio histórico",
-        scenes: [
-          { text: "Este código lleva sin resolverse más de 100 años", keyword: "old typewriter desk" },
-          { text: "Se llama el Cifrado de Beale, y promete un tesoro escondido", keyword: "treasure map vintage" },
-          { text: "Solo 1 de los 3 textos fue descifrado. Reveló millones en oro", keyword: "gold coins treasure chest" },
-          { text: "Los otros dos siguen sin resolverse. Cientos lo han intentado", keyword: "frustrated man dark room" }
-        ]
-      },
-      {
-        title: "El lugar que la ciencia no puede explicar",
-        tag: "Fenómeno inexplicable",
-        scenes: [
-          { text: "En medio del océano hay una zona donde las brújulas dejan de funcionar", keyword: "deep ocean compass" },
-          { text: "Decenas de barcos y aviones han desaparecido sin dejar rastro", keyword: "abandoned ship fog" },
-          { text: "Nadie ha podido explicar por qué pasa esto", keyword: "mysterious fog ocean" }
-        ]
+    function fillSelect(id, options) {
+      const el = document.getElementById(id);
+      el.innerHTML = "";
+      Object.entries(options).forEach(([value, label]) => {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = label;
+        el.appendChild(opt);
+      });
+    }
+
+    function selectedPage() {
+      return LIBRARY?.pages.find(p => p.id === SELECTED_PAGE_ID);
+    }
+
+    function findVideo(videoId) {
+      for (const page of LIBRARY.pages) {
+        const found = page.videos.find(v => v.id === videoId);
+        if (found) return found;
       }
-    ];
+      return null;
+    }
 
-    function renderIdeas() {
-      const container = document.getElementById("ideas");
-      IDEAS.forEach((idea, idx) => {
+    function renderPages() {
+      const container = document.getElementById("pagesList");
+      container.innerHTML = "";
+      LIBRARY.pages.forEach(page => {
         const div = document.createElement("div");
-        div.className = "idea-card";
-        div.onclick = () => loadIdea(idx);
+        const done = page.ready_count === page.total_count;
+        div.className = `page-card ${page.id === SELECTED_PAGE_ID ? "active" : ""} ${done ? "done" : ""}`;
+        div.onclick = () => { SELECTED_PAGE_ID = page.id; renderPages(); renderVideos(); };
         div.innerHTML = `
-          <h3>${idea.title}</h3>
-          <p>${idea.scenes.length} escenas listas</p>
-          <span class="tag">${idea.tag}</span>
+          <h3>${page.emoji || ""} ${escapeHtml(page.name)}</h3>
+          <p>${page.ready_count}/${page.total_count} videos listos</p>
+          <span class="pill ${done ? "ready" : ""}">${done ? "completa" : "en proceso"}</span>
         `;
         container.appendChild(div);
       });
     }
 
-    function loadIdea(idx) {
-      document.getElementById("scenes").innerHTML = "";
-      sceneCount = 0;
-      IDEAS[idx].scenes.forEach(s => addScene(s.text, s.keyword));
-      document.getElementById("status").className = "";
-      document.getElementById("status").innerText = `✅ Guion "${IDEAS[idx].title}" cargado. Revisa las escenas y genera el video.`;
-      window.scrollTo({ top: document.getElementById("scenes").offsetTop - 20, behavior: "smooth" });
+    function renderVideos() {
+      const page = selectedPage();
+      if (!page) return;
+      document.getElementById("pageTitle").innerText = `${page.emoji || ""} ${page.name}`;
+      document.getElementById("pageDescription").innerText = page.description || "";
+      const container = document.getElementById("videosList");
+      container.innerHTML = "";
+      let currentDay = "";
+      page.videos.forEach(video => {
+        if (video.day !== currentDay) {
+          currentDay = video.day;
+          const h = document.createElement("div");
+          h.className = "day-title";
+          h.innerText = `${video.day} — ${video.topic}`;
+          container.appendChild(h);
+        }
+        const div = document.createElement("div");
+        div.className = `video-card ${video.ready ? "ready" : ""} ${CURRENT_VIDEO?.id === video.id ? "active" : ""}`;
+        div.onclick = () => loadVideo(video.id);
+        const isNext = page.next_video_id === video.id;
+        div.innerHTML = `
+          <div class="title">${escapeHtml(video.type)}: ${escapeHtml(video.title)}</div>
+          <span class="pill">${escapeHtml(video.duration)}</span>
+          <span class="pill">${video.content_type === "story" ? "historia" : "escenas"}</span>
+          ${video.ready ? `<span class="pill ready">listo</span>` : ""}
+          ${isNext ? `<span class="pill next">siguiente</span>` : ""}
+          <div class="check-row" onclick="event.stopPropagation()">
+            <input type="checkbox" ${video.ready ? "checked" : ""} onchange="markReady('${video.id}', this.checked)">
+            <span>Marcar como listo</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
     }
 
-    // ---------- Escenas ----------
+    function loadVideo(videoId) {
+      const video = findVideo(videoId);
+      if (!video) return;
+      CURRENT_VIDEO = video;
+      SELECTED_PAGE_ID = video.page_id;
+      renderPages();
+      renderVideos();
+      document.getElementById("loadedInfo").style.display = "block";
+      document.getElementById("loadedTitle").innerText = `${video.day} — ${video.title}`;
+      document.getElementById("loadedMeta").innerHTML = `
+        <span class="pill">${escapeHtml(video.page_name)}</span>
+        <span class="pill">${escapeHtml(video.type)}</span>
+        <span class="pill">${escapeHtml(video.duration)}</span>
+        <span class="pill">${escapeHtml(video.topic)}</span>
+      `;
+      document.getElementById("loadedNotes").innerText = video.notes || "";
+      document.getElementById("loadedDescription").innerText = video.description || "";
+      document.getElementById("markLoadedBtn").innerText = video.ready ? "✅ Ya está marcado listo" : "✅ Marcar este video listo";
+
+      document.getElementById("voice").value = video.voice || "mexico_hombre";
+      document.getElementById("storyVoice").value = video.voice || "mexico_hombre";
+      document.getElementById("music").value = video.music || "mystery";
+      document.getElementById("storyMusic").value = video.music || "mystery";
+      document.getElementById("captionStyle").value = video.subtitle_style || "meme";
+      document.getElementById("storyCaptionStyle").value = video.subtitle_style || "meme";
+
+      if (video.content_type === "story") {
+        showTab("story");
+        document.getElementById("storyText").value = video.story_text || "";
+        document.getElementById("storyKeywords").value = (video.keywords || []).join(", ");
+      } else {
+        showTab("scenes");
+        document.getElementById("scenes").innerHTML = "";
+        sceneCount = 0;
+        (video.scenes || []).forEach(s => addScene(s.text, s.keyword));
+      }
+      window.scrollTo({ top: document.getElementById("loadedInfo").offsetTop - 10, behavior: "smooth" });
+    }
+
+    function loadNextPending(scroll = true) {
+      const page = selectedPage();
+      if (!page) return;
+      const next = page.videos.find(v => !v.ready) || page.videos[0];
+      if (next) loadVideo(next.id);
+      if (!scroll) window.scrollTo({ top: 0 });
+    }
+
+    async function markReady(videoId, ready) {
+      const resp = await fetch("/api/mark_ready", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ video_id: videoId, ready })
+      });
+      const data = await resp.json();
+      if (!data.ok) return;
+      await refreshLibraryKeepSelection();
+    }
+
+    async function toggleLoadedReady(ready) {
+      if (!CURRENT_VIDEO) return;
+      await markReady(CURRENT_VIDEO.id, ready);
+    }
+
+    async function resetSelectedPage() {
+      const page = selectedPage();
+      if (!page) return;
+      if (!confirm(`¿Reiniciar todos los checks de ${page.name}?`)) return;
+      await fetch("/api/reset_page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page_id: page.id })
+      });
+      await refreshLibraryKeepSelection();
+    }
+
+    async function refreshLibraryKeepSelection() {
+      const selected = SELECTED_PAGE_ID;
+      const current = CURRENT_VIDEO?.id;
+      const resp = await fetch("/api/content");
+      const data = await resp.json();
+      LIBRARY = data.library;
+      SELECTED_PAGE_ID = selected;
+      CURRENT_VIDEO = current ? findVideo(current) : null;
+      renderPages();
+      renderVideos();
+      if (CURRENT_VIDEO) {
+        document.getElementById("markLoadedBtn").innerText = CURRENT_VIDEO.ready ? "✅ Ya está marcado listo" : "✅ Marcar este video listo";
+      }
+    }
+
     function addScene(text = "", keyword = "") {
       sceneCount++;
       const div = document.createElement("div");
@@ -252,9 +359,9 @@
       div.id = "scene-" + sceneCount;
       div.innerHTML = `
         <label>Escena ${sceneCount} — Texto / voz</label>
-        <textarea rows="2" class="scene-text">${text}</textarea>
+        <textarea rows="2" class="scene-text">${escapeHtml(text)}</textarea>
         <label>Palabra clave (inglés, para buscar el video)</label>
-        <input type="text" class="scene-keyword" value="${keyword}" placeholder="ej: dark cave">
+        <input type="text" class="scene-keyword" value="${escapeHtml(keyword)}" placeholder="ej: dark cave">
         <div id="removeBtns">
           <button onclick="document.getElementById('scene-${sceneCount}').remove()">Quitar escena</button>
         </div>
@@ -262,12 +369,6 @@
       document.getElementById("scenes").appendChild(div);
     }
 
-    renderIdeas();
-    // Arrancamos con la primera idea ya cargada de ejemplo
-    loadIdea(0);
-    document.getElementById("status").innerText = "";
-
-    // ---------- Generación ----------
     async function generateVideo() {
       const scenes = [];
       document.querySelectorAll("#scenes .scene").forEach(div => {
@@ -278,6 +379,8 @@
 
       const voice = document.getElementById("voice").value;
       const music = document.getElementById("music").value;
+      const caption_style = document.getElementById("captionStyle").value;
+      const page_id = SELECTED_PAGE_ID || "manual";
       const statusEl = document.getElementById("status");
       const btn = document.getElementById("generateBtn");
 
@@ -295,7 +398,7 @@
         const resp = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenes, voice, music })
+          body: JSON.stringify({ scenes, voice, music, page_id, caption_style })
         });
         const data = await resp.json();
 
@@ -305,9 +408,7 @@
           btn.disabled = false;
           return;
         }
-
         pollStatus(data.job_id, statusEl, btn);
-
       } catch (err) {
         statusEl.className = "error";
         statusEl.innerText = "❌ Error de conexión: " + err.message;
@@ -321,6 +422,8 @@
       const keywords = keywordsRaw.split(",").map(k => k.trim()).filter(k => k);
       const voice = document.getElementById("storyVoice").value;
       const music = document.getElementById("storyMusic").value;
+      const caption_style = document.getElementById("storyCaptionStyle").value;
+      const page_id = SELECTED_PAGE_ID || "manual";
       const statusEl = document.getElementById("status");
       const btn = document.getElementById("generateStoryBtn");
 
@@ -331,7 +434,7 @@
       }
       if (keywords.length === 0) {
         statusEl.className = "error";
-        statusEl.innerText = "Agrega al menos 1 palabra clave de fondo (lo ideal son 2-4).";
+        statusEl.innerText = "Agrega al menos 1 palabra clave de fondo.";
         return;
       }
 
@@ -343,7 +446,7 @@
         const resp = await fetch("/api/generate_story", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, keywords, voice, music })
+          body: JSON.stringify({ text, keywords, voice, music, page_id, caption_style })
         });
         const data = await resp.json();
 
@@ -353,9 +456,7 @@
           btn.disabled = false;
           return;
         }
-
         pollStatus(data.job_id, statusEl, btn);
-
       } catch (err) {
         statusEl.className = "error";
         statusEl.innerText = "❌ Error de conexión: " + err.message;
@@ -364,9 +465,8 @@
     }
 
     async function pollStatus(jobId, statusEl, btn) {
-      const maxAttempts = 300; // ~20 minutos máximo (guiones largos de 8 escenas tardan más)
+      const maxAttempts = 300;
       let attempts = 0;
-
       const interval = setInterval(async () => {
         attempts++;
         try {
@@ -376,7 +476,8 @@
           if (data.status === "done") {
             clearInterval(interval);
             statusEl.className = "success";
-            statusEl.innerHTML = `✅ ¡Video listo! <a id="downloadLink" href="${data.download_url}">Descargar video</a>`;
+            const markBtn = CURRENT_VIDEO ? `<br><button class="good small" onclick="toggleLoadedReady(true)">Marcar contenido actual como listo</button>` : "";
+            statusEl.innerHTML = `✅ ¡Video listo! <a id="downloadLink" href="${data.download_url}">Descargar video</a>${markBtn}`;
             btn.disabled = false;
           } else if (data.status === "error") {
             clearInterval(interval);
@@ -392,13 +493,19 @@
             const pct = data.progress_pct || 0;
             const text = data.progress_text || "Procesando...";
             statusEl.className = "";
-            statusEl.innerHTML = `⏳ ${text}<div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+            statusEl.innerHTML = `⏳ ${escapeHtml(text)}<div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
           }
         } catch (err) {
           // un fallo de red puntual al consultar no debe detener el polling
         }
       }, 4000);
     }
+
+    loadContent().catch(err => {
+      const statusEl = document.getElementById("status");
+      statusEl.className = "error";
+      statusEl.innerText = "No se pudo iniciar la app: " + err.message;
+    });
   </script>
 </body>
 </html>

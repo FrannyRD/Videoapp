@@ -82,6 +82,10 @@
     <div id="loadedMeta"></div>
     <p class="muted" id="loadedNotes"></p>
     <div style="display:grid; grid-template-columns:1fr; gap:10px;">
+      <div id="loadedTextOnScreenWrap" style="display:none;">
+        <label>Texto corto en pantalla</label>
+        <div id="loadedTextOnScreen" class="copybox"></div>
+      </div>
       <div>
         <label>Descripción para Facebook</label>
         <div id="loadedDescription" class="copybox"></div>
@@ -278,6 +282,9 @@
         <span class="pill">${escapeHtml(video.topic)}</span>
       `;
       document.getElementById("loadedNotes").innerText = video.notes || "";
+      const textOnScreen = video.text_on_screen || "";
+      document.getElementById("loadedTextOnScreenWrap").style.display = textOnScreen ? "block" : "none";
+      document.getElementById("loadedTextOnScreen").innerText = textOnScreen;
       document.getElementById("loadedDescription").innerText = video.description || "";
       document.getElementById("markLoadedBtn").innerText = video.ready ? "✅ Ya está marcado listo" : "✅ Marcar este video listo";
 

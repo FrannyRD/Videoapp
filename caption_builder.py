@@ -2,6 +2,7 @@
 Construye subtítulos .ASS sincronizados con los tiempos exactos de la voz.
 Incluye varios estilos para adaptar cada página sin tocar el render principal.
 """
+import os
 
 CAPTION_STYLES = {
     "meme": {
@@ -87,6 +88,22 @@ CAPTION_STYLES = {
 }
 
 
+def _env_float(name: str, default: float) -> float:
+    """Lee valores decimales desde variables de entorno sin romper la app si vienen mal."""
+    try:
+        return float(os.environ.get(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+# Ajuste fino de sincronía.
+# Valor negativo = los subtítulos entran un poco antes.
+# Esto compensa el pequeño retraso que puede producirse entre Edge-TTS, MP3 y libass/FFmpeg.
+CAPTION_SYNC_OFFSET_SECONDS = _env_float("CAPTION_SYNC_OFFSET_SECONDS", -0.32)
+CAPTION_MIN_DURATION_SECONDS = _env_float("CAPTION_MIN_DURATION_SECONDS", 0.38)
+CAPTION_GAP_SECONDS = _env_float("CAPTION_GAP_SECONDS", 0.02)
+
+
 def _seconds_to_ass_time(seconds: float) -> str:
     """Convierte segundos a formato de tiempo ASS: H:MM:SS.cc"""
     if seconds < 0:
@@ -104,6 +121,46 @@ def _escape_ass_text(text: str) -> str:
         .replace("}", "")
         .replace("\n", "\\N")
     )
+
+
+def _sanitize_caption_timing(chunks: list, sync_offset: float | None = None,
+                             min_duration: float | None = None,
+                             gap: float | None = None) -> list:
+    """
+    Ajusta los tiempos para que el subtítulo no quede tarde frente a la voz.
+
+    Edge-TTS entrega tiempos por palabra, pero al guardar en MP3 y quemar subtítulos con
+    FFmpeg/libass puede sentirse un pequeño retraso visual. Por eso adelantamos levemente
+    las líneas sin tocar la voz, música, clips, contenido ni estilos de la app.
+    """
+    if sync_offset is None:
+        sync_offset = CAPTION_SYNC_OFFSET_SECONDS
+    if min_duration is None:
+        min_duration = CAPTION_MIN_DURATION_SECONDS
+    if gap is None:
+        gap = CAPTION_GAP_SECONDS
+
+    normalized = []
+    for c in chunks:
+        text = (c.get("text") or "").strip()
+        if not text:
+            continue
+
+        start = max(float(c.get("start", 0.0)) + sync_offset, 0.0)
+        end = max(float(c.get("end", start)) + sync_offset, start + min_duration)
+        if end - start < min_duration:
+            end = start + min_duration
+
+        normalized.append({"text": text, "start": start, "end": end})
+
+    # Evita solapes visibles cuando una línea se adelanta cerca de la siguiente.
+    for i in range(len(normalized) - 1):
+        next_start = normalized[i + 1]["start"]
+        max_end = max(next_start - gap, normalized[i]["start"] + 0.10)
+        if normalized[i]["end"] > max_end:
+            normalized[i]["end"] = max_end
+
+    return normalized
 
 
 def group_words_into_chunks(words: list, max_words: int = 4, max_chars: int = 26) -> list:
@@ -136,7 +193,7 @@ def group_words_into_chunks(words: list, max_words: int = 4, max_chars: int = 26
 
 def build_ass(chunks: list, output_path: str, width: int, height: int,
               fontsize: int | None = None, font: str | None = None, margin_v: int | None = None,
-              style_key: str = "meme"):
+              style_key: str = "meme", sync_offset: float | None = None):
     """Genera archivo .ass con un estilo visual seleccionable."""
     style = dict(CAPTION_STYLES.get(style_key) or CAPTION_STYLES["meme"])
     if fontsize is not None:
@@ -161,7 +218,8 @@ Style: Default,{style['font']},{style['fontsize']},{style['primary']},&H000000FF
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     lines = []
-    for c in chunks:
+    adjusted_chunks = _sanitize_caption_timing(chunks, sync_offset=sync_offset)
+    for c in adjusted_chunks:
         start = _seconds_to_ass_time(c["start"])
         end = _seconds_to_ass_time(c["end"])
         raw = c["text"].upper() if style.get("uppercase") else c["text"]

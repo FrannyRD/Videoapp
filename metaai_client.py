@@ -63,9 +63,39 @@ def generate_metaai_video(prompt: str, *, auto_poll: bool = True, max_poll_attem
 
     try:
         from metaai_api import MetaAI
+    except ModuleNotFoundError as exc:  # pragma: no cover - depende del entorno de Render
+        # Fallback por si Render no instaló el paquete local pero el SDK está
+        # incluido dentro del proyecto como vendor. Esto mantiene la sección
+        # Meta AI aislada y evita tocar el generador principal.
+        import sys
+        from pathlib import Path
+
+        base_dir = Path(__file__).resolve().parent
+        candidate_paths = [
+            base_dir / "metaai_api_vendor" / "src",
+            base_dir,
+        ]
+        for candidate in candidate_paths:
+            if candidate.exists() and str(candidate) not in sys.path:
+                sys.path.insert(0, str(candidate))
+
+        try:
+            from metaai_api import MetaAI
+        except ModuleNotFoundError as second_exc:
+            missing_name = getattr(second_exc, "name", "") or str(second_exc)
+            if missing_name == "metaai_api":
+                raise RuntimeError(
+                    "No se encontró el SDK local de Meta AI. Sube también la carpeta "
+                    "metaai_api_vendor completa o usa el ZIP completo corregido."
+                ) from second_exc
+            raise RuntimeError(
+                "El SDK de Meta AI está presente, pero falta una dependencia. "
+                f"Detalle: {second_exc}"
+            ) from second_exc
     except Exception as exc:  # pragma: no cover - depende del entorno de Render
         raise RuntimeError(
-            "No se pudo cargar el SDK de Meta AI. Revisa que requirements.txt se haya instalado completo. "
+            "No se pudo cargar el SDK de Meta AI. Revisa el log de Render y que "
+            "requirements.txt se haya instalado completo. "
             f"Detalle: {exc}"
         ) from exc
 

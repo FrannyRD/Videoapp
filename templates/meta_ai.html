@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta AI Video — Beta</title>
+<style>
+  :root { --bg:#0d0d1a; --panel:#1a1a2e; --panel2:#16213e; --line:#2c3e64; --text:#eee; --muted:#9aa5c4; --accent:#4f46e5; --ok:#22c55e; --danger:#b91c1c; --warn:#d97706; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; max-width: 920px; margin: 24px auto; padding: 0 16px; background: var(--bg); color: var(--text); }
+  a { color:#93c5fd; }
+  h1 { font-size: 1.55rem; margin-bottom: 4px; }
+  h2 { font-size: 1.05rem; margin-top: 0; color:#ddd; }
+  p { line-height: 1.45; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  .panel { background: var(--panel); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); }
+  textarea, input, select { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee; }
+  label { font-size: 0.84rem; color:#aaa; }
+  button { background: var(--accent); color:white; border:0; padding: 11px 16px; border-radius: 9px; font-size: 0.95rem; cursor:pointer; margin-top:10px; }
+  button:disabled { background:#555; cursor:not-allowed; }
+  button.secondary { background:#333a55; }
+  .pill { display:inline-block; background:#2c3e64; color:#dbeafe; font-size:0.76rem; padding:4px 9px; border-radius:14px; margin: 3px 4px 3px 0; }
+  .pill.ok { background:#14532d; color:#bbf7d0; }
+  .pill.bad { background:#641e1e; color:#fecaca; }
+  .pill.warn { background:#7c2d12; color:#fed7aa; }
+  .result { background:#0f172a; border:1px solid #26324f; border-radius:10px; padding:10px; white-space:pre-wrap; word-break:break-word; }
+  .error { background:#4a1414; color:#ffb4b4; border-radius:8px; padding:10px; }
+  .success { background:#14361f; color:#b6f0c5; border-radius:8px; padding:10px; }
+  .progress-wrap { background:#222; border-radius:8px; height:18px; margin-top:8px; overflow:hidden; }
+  .progress-bar { background:var(--accent); height:100%; width:0%; transition:width 0.4s ease; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+  <p><a href="/">← Volver al generador principal</a></p>
+  <h1>Meta AI Video — Beta</h1>
+  <p class="muted">Sección separada para probar generación de videos con el SDK de Meta AI. No cambia el flujo principal de Pexels, checklist, música ni subtítulos.</p>
+
+  <div class="panel">
+    <h2>Estado de conexión</h2>
+    <div id="envStatus"><span class="pill warn">revisando...</span></div>
+    <p class="muted">Requiere variables privadas en Render: <b>META_AI_DATR</b> y <b>META_AI_ECTO_1_SESS</b>. <b>META_AI_ABRA_SESS</b> es opcional.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Generar video IA</h2>
+    <label>Prompt visual</label>
+    <textarea id="prompt" rows="7" placeholder="Ejemplo: cinematic vertical documentary shot of an ancient archive room, old documents on a table, dramatic shadows, realistic, no text, no logos"></textarea>
+    <div class="grid">
+      <div>
+        <label>Modo</label>
+        <select id="autoPoll">
+          <option value="true">Esperar enlaces de video</option>
+          <option value="false">Solo enviar y devolver enlace de Meta AI</option>
+        </select>
+      </div>
+      <div>
+        <label>Intentos de espera</label>
+        <input id="attempts" type="number" min="3" max="30" value="12">
+      </div>
+    </div>
+    <button id="generateBtn" onclick="generateMetaVideo()">🎬 Generar con Meta AI</button>
+  </div>
+
+  <div class="panel">
+    <h2>Prompts rápidos por página</h2>
+    <button class="secondary" onclick="setPrompt('casos')">Casos Sin Resolver</button>
+    <button class="secondary" onclick="setPrompt('mente')">Mente Profunda</button>
+    <button class="secondary" onclick="setPrompt('animal')">Mundo Animal Salvaje</button>
+    <button class="secondary" onclick="setPrompt('historia')">Historia Prohibida</button>
+    <button class="secondary" onclick="setPrompt('biblia')">Biblia Cinemática</button>
+    <button class="secondary" onclick="setPrompt('enigma')">Enigma Diario</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="results" class="panel" style="display:none;"></div>
+
+<script>
+function escapeHtml(str = "") {
+  return String(str).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
+}
+
+const PROMPTS = {
+  casos: "vertical cinematic true crime documentary scene, dark empty rural road at night, distant police lights, fog, realistic, suspenseful, no blood, no text, no logos",
+  mente: "vertical cinematic psychological scene, person alone in a crowd, emotional blue and purple lighting, reflective mood, realistic, no text, no logos",
+  animal: "vertical cinematic wildlife documentary scene, orca pod swimming through dark ocean, dramatic light rays underwater, realistic, no text, no logos",
+  historia: "vertical cinematic historical documentary scene, old classified documents on a wooden table, map, candlelight, dramatic shadows, realistic, no text, no logos",
+  biblia: "vertical cinematic biblical scene, man praying near ancient window, warm candlelight, desert atmosphere, respectful, realistic, no text, no logos",
+  enigma: "vertical cinematic mystery scene, old hotel hallway, closed door, dim warm lights, soft fog, realistic, no text, no logos"
+};
+
+function setPrompt(key) {
+  document.getElementById("prompt").value = PROMPTS[key] || "";
+}
+
+async function loadEnvStatus() {
+  const el = document.getElementById("envStatus");
+  try {
+    const resp = await fetch("/api/metaai/config");
+    const data = await resp.json();
+    if (data.configured) {
+      el.innerHTML = `<span class="pill ok">configurado</span><span class="pill">datr</span><span class="pill">ecto_1_sess</span>${data.has_abra_sess ? '<span class="pill">abra_sess</span>' : '<span class="pill warn">sin abra_sess</span>'}`;
+    } else {
+      el.innerHTML = `<span class="pill bad">faltan variables</span> ${data.missing.map(x => `<span class="pill warn">${escapeHtml(x)}</span>`).join('')}`;
+    }
+  } catch (err) {
+    el.innerHTML = `<span class="pill bad">error leyendo configuración</span>`;
+  }
+}
+
+async function generateMetaVideo() {
+  const prompt = document.getElementById("prompt").value.trim();
+  const auto_poll = document.getElementById("autoPoll").value === "true";
+  const max_poll_attempts = Number(document.getElementById("attempts").value || 12);
+  const statusEl = document.getElementById("status");
+  const resultsEl = document.getElementById("results");
+  const btn = document.getElementById("generateBtn");
+
+  if (prompt.length < 8) {
+    statusEl.className = "error";
+    statusEl.innerText = "Escribe un prompt más completo.";
+    return;
+  }
+
+  btn.disabled = true;
+  resultsEl.style.display = "none";
+  statusEl.className = "";
+  statusEl.innerHTML = `⏳ Enviando a Meta AI... <div class="progress-wrap"><div class="progress-bar" style="width:10%"></div></div>`;
+
+  try {
+    const resp = await fetch("/api/metaai/generate_video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, auto_poll, max_poll_attempts, poll_wait_seconds: 4 })
+    });
+    const data = await resp.json();
+    if (!data.ok) {
+      statusEl.className = "error";
+      statusEl.innerText = "❌ " + (data.error || "No se pudo iniciar.");
+      btn.disabled = false;
+      return;
+    }
+    pollMetaStatus(data.job_id, btn);
+  } catch (err) {
+    statusEl.className = "error";
+    statusEl.innerText = "❌ Error de conexión: " + err.message;
+    btn.disabled = false;
+  }
+}
+
+async function pollMetaStatus(jobId, btn) {
+  const statusEl = document.getElementById("status");
+  const resultsEl = document.getElementById("results");
+  let attempts = 0;
+  const timer = setInterval(async () => {
+    attempts += 1;
+    try {
+      const resp = await fetch(`/api/metaai/status/${jobId}`);
+      const data = await resp.json();
+      if (data.status === "done") {
+        clearInterval(timer);
+        btn.disabled = false;
+        statusEl.className = "success";
+        statusEl.innerText = "✅ Respuesta recibida de Meta AI.";
+        renderResults(data.result || {});
+      } else if (data.status === "error") {
+        clearInterval(timer);
+        btn.disabled = false;
+        statusEl.className = "error";
+        statusEl.innerText = "❌ " + (data.error || "Error generando con Meta AI.");
+      } else {
+        const pct = Math.min(90, 10 + attempts * 8);
+        statusEl.className = "";
+        statusEl.innerHTML = `⏳ ${escapeHtml(data.progress_text || 'Generando con Meta AI...')}<div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+      }
+    } catch (err) {
+      // Ignorar fallos puntuales de polling.
+    }
+  }, 3500);
+}
+
+function renderResults(result) {
+  const resultsEl = document.getElementById("results");
+  const videoLinks = (result.video_urls || []).map((url, i) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">Video ${i + 1}</a></li>`).join("");
+  const createLinks = (result.meta_create_urls || []).map((url, i) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir en Meta AI ${i + 1}</a></li>`).join("");
+  resultsEl.style.display = "block";
+  resultsEl.innerHTML = `
+    <h2>Resultado</h2>
+    <span class="pill ${result.success ? 'ok' : 'warn'}">${escapeHtml(result.status || '')}</span>
+    ${result.error ? `<p class="error">${escapeHtml(result.error)}</p>` : ''}
+    ${result.meta_prompt_url ? `<p><a href="${escapeHtml(result.meta_prompt_url)}" target="_blank" rel="noopener">Abrir conversación en Meta AI</a></p>` : ''}
+    ${videoLinks ? `<h2>Videos generados</h2><ol>${videoLinks}</ol>` : '<p class="muted">Si todavía no hay enlaces directos, abre el enlace de Meta AI o usa el modo esperar enlaces.</p>'}
+    ${createLinks ? `<h2>Media IDs</h2><ol>${createLinks}</ol>` : ''}
+    <label>Prompt usado</label>
+    <div class="result">${escapeHtml(result.prompt || '')}</div>
+  `;
+}
+
+loadEnvStatus();
+</script>
+</body>
+</html>

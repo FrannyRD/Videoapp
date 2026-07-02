@@ -13,6 +13,7 @@ from tts_client import VOICE_ES_MEXICO, VOICE_ES_ESPANA_MUJER, VOICE_ES_ESPANA_H
 from content_state import get_library_with_status, set_video_ready, reset_page
 from caption_builder import CAPTION_STYLES
 from music_client import MUSIC_LABELS
+from metaai_client import metaai_env_status, generate_metaai_video
 
 app = Flask(__name__)
 
@@ -28,6 +29,7 @@ VOICES = {
 
 # Estado de los jobs en memoria: {job_id: {"status": "...", "download_url": "...", "error": "..."}}
 JOBS = {}
+META_AI_JOBS = {}
 
 
 def _run_job(job_id, scenes, voice, music_key, page_id="manual", caption_style="meme"):
@@ -174,6 +176,65 @@ def api_generate_story():
     thread.start()
 
     return jsonify({"ok": True, "job_id": job_id})
+
+
+@app.route("/meta-ai")
+def meta_ai_page():
+    """Subpágina aislada para pruebas de video con Meta AI."""
+    return render_template("meta_ai.html")
+
+
+@app.route("/api/metaai/config")
+def api_metaai_config():
+    return jsonify(metaai_env_status())
+
+
+def _run_metaai_video_job(job_id, prompt, auto_poll=True, max_poll_attempts=12, poll_wait_seconds=4):
+    try:
+        META_AI_JOBS[job_id] = {
+            "status": "processing",
+            "progress_text": "Conectando con Meta AI...",
+        }
+        result = generate_metaai_video(
+            prompt,
+            auto_poll=auto_poll,
+            max_poll_attempts=max_poll_attempts,
+            poll_wait_seconds=poll_wait_seconds,
+        )
+        META_AI_JOBS[job_id] = {"status": "done", "result": result}
+    except Exception as e:
+        traceback.print_exc()
+        META_AI_JOBS[job_id] = {"status": "error", "error": str(e)}
+
+
+@app.route("/api/metaai/generate_video", methods=["POST"])
+def api_metaai_generate_video():
+    data = request.get_json(force=True)
+    prompt = (data.get("prompt") or "").strip()
+    auto_poll = bool(data.get("auto_poll", True))
+    max_poll_attempts = int(data.get("max_poll_attempts") or 12)
+    poll_wait_seconds = int(data.get("poll_wait_seconds") or 4)
+
+    if len(prompt) < 8:
+        return jsonify({"ok": False, "error": "Escribe un prompt más completo."}), 400
+
+    job_id = "meta_" + str(uuid.uuid4())[:8]
+    META_AI_JOBS[job_id] = {"status": "processing", "progress_text": "En cola..."}
+    thread = threading.Thread(
+        target=_run_metaai_video_job,
+        args=(job_id, prompt, auto_poll, max_poll_attempts, poll_wait_seconds),
+        daemon=True,
+    )
+    thread.start()
+    return jsonify({"ok": True, "job_id": job_id})
+
+
+@app.route("/api/metaai/status/<job_id>")
+def api_metaai_status(job_id):
+    job = META_AI_JOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Job no encontrado."}), 404
+    return jsonify(job)
 
 
 @app.route("/download/<filename>")
